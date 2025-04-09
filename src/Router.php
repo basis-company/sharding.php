@@ -208,7 +208,7 @@ class Router implements Database
             $driver = $this->getDriver($storage);
         }
 
-        return $callback(new Context($driver, $this->registry->getTable($class)));
+        return $callback(new Context($driver, $buckets, $this->registry->getTable($class)));
     }
 
     public function update(string $class, int $id, array $data): void

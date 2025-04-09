@@ -10,6 +10,10 @@ class Context
 {
     public function __construct(
         public Driver $driver,
+        /**
+         * @var \Basis\Shard\Entity\Bucket[]
+         */
+        public array $buckets,
         public string $table,
     ) {
     }
