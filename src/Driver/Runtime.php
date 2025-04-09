@@ -72,10 +72,15 @@ class Runtime implements Driver
         return (object) $data;
     }
 
-    public function get(string $class, int $id): object
+    public function findOrFail(string $table, array $query): ?object
     {
-        return $this->find($class, ['id' => $id])[0];
+        $row = $this->findOne($table, $query);
+        if (!$row) {
+            throw new Exception('No ' . $table . ' found');
+        }
+        return $row;
     }
+
 
     public function getDsn(): string
     {

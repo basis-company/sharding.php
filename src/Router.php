@@ -13,7 +13,6 @@ use Exception;
 
 class Router implements Database
 {
-
     public function __construct(
         public readonly Registry $registry,
         public readonly Driver $driver,
@@ -48,17 +47,20 @@ class Router implements Database
             $data['id'] = Sequence::getNext($this, $this->registry->getTable($class));
         }
 
-        $bucket = $this->getBucket($class, $data);
+        $buckets = $this->getBuckets($class, $data, createIfNotExists: true);
+        if (count($buckets) > 1) {
+            throw new Exception('Multiple buckets for ' . $class);
+        } else {
+            [$bucket] = $buckets;
+        }
+
         $data['bucket'] = $bucket->id;
 
         if (!$bucket->storage) {
             $this->castStorage($bucket);
         }
 
-        $row = $this->perform($bucket->storage, [$bucket], $class, function (Context $context) use ($data) {
-            return $context->driver->create($context->table, $data);
-        });
-
+        $row = $this->getDriver($bucket->storage)->create($this->registry->getTable($class), $data);
         return $this->createInstance($class, $row);
     }
 
@@ -77,34 +79,31 @@ class Router implements Database
         return (object) $row;
     }
 
-    public function createInstances(string $class, array $rows): array
-    {
-        return array_map(fn ($row) => $this->createInstance($class, $row), $rows);
-    }
-
     public function find(string $class, array $data = []): array
     {
-        return $this->merge($class, $data, function (Context $context) use ($data) {
+        return $this->scan($class, $data, function (Context $context) use ($data) {
             return $context->driver->find($context->table, $data);
         });
     }
 
     public function findOne(string $class, array $query): ?object
     {
-        $data = $this->merge($class, $query, function (Context $context) use ($query) {
+        $data = $this->scan($class, $query, function (Context $context) use ($query) {
             return $context->driver->findOne($context->table, $query);
-        });
+        }, single: true);
 
-        if (count($data)) {
-            return array_shift($data);
-        }
-
-        return null;
+        return count($data) ? array_shift($data) : null;
     }
 
     public function findOrCreate(string $class, array $query, array $data = []): object
     {
-        $bucket = $this->getBucket($class, $query);
+        $buckets = $this->getBuckets($class, $query, createIfNotExists: true);
+        if (count($buckets) > 1) {
+            throw new Exception('Multiple buckets for ' . $class);
+        } else {
+            [$bucket] = $buckets;
+        }
+
         $driver = $this->getDriver($bucket->storage);
         $table = $this->registry->getTable($class);
 
@@ -121,19 +120,13 @@ class Router implements Database
         return $row ? $this->createInstance($class, $row) : null;
     }
 
-    public function get(string $class, int $id): object
+    public function findOrFail(string $class, array $query): ?object
     {
-        return (object) [];
-    }
-
-    public function getBucket(string $class, array $data = []): Bucket
-    {
-        $buckets = $this->getBuckets($class, $data, true);
-        if (count($buckets) > 1) {
-            throw new Exception('Multiple buckets for ' . $class);
+        $row = $this->findOne($class, $query);
+        if (!$row) {
+            throw new Exception('No ' . $class . ' found');
         }
-
-        return $buckets[0];
+        return $row;
     }
 
     public function getBuckets(string $class, array $data = [], bool $createIfNotExists = false)
@@ -143,10 +136,11 @@ class Router implements Database
         }
 
         if (in_array($class, [Bucket::class, Storage::class, Sequence::class])) {
-            return $this->createInstances(Bucket::class, $this->driver->find(
+            $row = $this->driver->findOrFail(
                 $this->registry->getTable(Bucket::class),
                 ['id' => Bucket::KEYS[$this->registry->getDomain(Bucket::class)]],
-            ));
+            );
+            return [$this->createInstance(Bucket::class, $row)];
         }
 
         $table = $this->registry->getTable($class);
@@ -170,6 +164,10 @@ class Router implements Database
 
     public function getDriver(int $storageId): Driver
     {
+        if ($storageId == 1) {
+            return $this->driver;
+        }
+
         if (!count($this->drivers)) {
             foreach ($this->find(Storage::class) as $storage) {
                 $this->drivers[$storage->id] = $storage->getDriver();
@@ -179,7 +177,7 @@ class Router implements Database
         return $this->drivers[$storageId];
     }
 
-    public function merge(string $class, array $data, callable $callback): array
+    public function scan(string $class, array $data, callable $callback, bool $single = false): array
     {
         $storageBuckets = [];
         foreach ($this->getBuckets($class, $data) as $bucket) {
@@ -191,28 +189,23 @@ class Router implements Database
         }
 
         $result = [];
-        foreach ($storageBuckets as $storage => $buckets) {
-            foreach ($this->perform($storage, $buckets, $class, $callback) as $row) {
+        foreach ($storageBuckets as $storageId => $buckets) {
+            $context = new Context($this->getDriver($storageId), $buckets, $this->registry->getTable($class));
+            foreach ($callback($context) as $row) {
                 $result[] = $this->createInstance($class, $row);
+                if ($single) {
+                    break 2;
+                }
             }
         }
 
         return $result;
     }
 
-    public function perform(int $storage, array $buckets, string $class, callable $callback)
-    {
-        if ($buckets[0]->name == Bucket::BUCKET_BUCKET_NAME) {
-            $driver = $this->driver;
-        } else {
-            $driver = $this->getDriver($storage);
-        }
-
-        return $callback(new Context($driver, $buckets, $this->registry->getTable($class)));
-    }
-
     public function update(string $class, int $id, array $data): void
     {
-        throw new Exception("STORAGE");
+        $this->scan($class, $data, function (Context $context) use ($id, $data) {
+            $context->driver->update($context->table, $id, $data);
+        }, single: true);
     }
 }

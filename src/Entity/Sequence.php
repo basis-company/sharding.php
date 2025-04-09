@@ -65,7 +65,7 @@ class Sequence implements Bootstrap, Domain, Subdomain, Indexing
             'next' => 0,
         ]);
 
-        $bucket = $router->getBucket(Sequence::class);
+        [$bucket] = $router->getBuckets(Sequence::class, createIfNotExists: true);
         $driver = $router->getDriver($bucket->storage);
 
         if ($driver instanceof Tarantool) {

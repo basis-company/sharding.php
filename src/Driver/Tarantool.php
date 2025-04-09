@@ -41,9 +41,13 @@ class Tarantool implements Driver
         return $this->mapper->findOrCreate($table, $query, $data);
     }
 
-    public function get(string $table, int $id): object
+    public function findOrFail(string $table, array $query): ?object
     {
-        return $this->mapper->get($table, $id);
+        $row = $this->findOne($table, $query);
+        if (!$row) {
+            throw new Exception('No ' . $table . ' found');
+        }
+        return $row;
     }
 
     public function getDsn(): string
