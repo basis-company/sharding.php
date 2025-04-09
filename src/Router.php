@@ -79,20 +79,50 @@ class Router implements Database
         return (object) $row;
     }
 
+    public function fetchInstance(string $class, array $data, callable $callback): ?object
+    {
+        $rows = $this->fetchInstances($class, $data, $callback, single: true);
+        return count($rows) ? $rows[0] : null;
+    }
+
+    public function fetchInstances(string $class, array $data, callable $callback, bool $single = false): array
+    {
+        $storageBuckets = [];
+        foreach ($this->getBuckets($class, $data) as $bucket) {
+            if (!array_key_exists($bucket->storage, $storageBuckets)) {
+                $storageBuckets[$bucket->storage] = [$bucket];
+            } else {
+                $storageBuckets[$bucket->storage][] = $bucket;
+            }
+        }
+
+        $result = [];
+        $table = $this->registry->getTable($class);
+        foreach ($storageBuckets as $storageId => $buckets) {
+            $driver = $this->getDriver($storageId);
+            foreach ($callback($driver, $table, $buckets) as $row) {
+                $result[] = $this->createInstance($class, $row);
+                if ($single) {
+                    break 2;
+                }
+            }
+        }
+
+        return $result;
+    }
+
     public function find(string $class, array $data = []): array
     {
-        return $this->scan($class, $data, function (Context $context) use ($data) {
-            return $context->driver->find($context->table, $data);
-        });
+        return $this->fetchInstances($class, $data, fn(Driver $driver, string $table) => $driver->find($table, $data));
     }
 
     public function findOne(string $class, array $query): ?object
     {
-        $data = $this->scan($class, $query, function (Context $context) use ($query) {
-            return $context->driver->findOne($context->table, $query);
-        }, single: true);
-
-        return count($data) ? array_shift($data) : null;
+        return $this->fetchInstance(
+            class: $class,
+            data: $query,
+            callback: fn(Driver $driver, string $table) => $driver->findOne($table, $query),
+        );
     }
 
     public function findOrCreate(string $class, array $query, array $data = []): object
@@ -177,35 +207,8 @@ class Router implements Database
         return $this->drivers[$storageId];
     }
 
-    public function scan(string $class, array $data, callable $callback, bool $single = false): array
-    {
-        $storageBuckets = [];
-        foreach ($this->getBuckets($class, $data) as $bucket) {
-            if (!array_key_exists($bucket->storage, $storageBuckets)) {
-                $storageBuckets[$bucket->storage] = [$bucket];
-            } else {
-                $storageBuckets[$bucket->storage][] = $bucket;
-            }
-        }
-
-        $result = [];
-        foreach ($storageBuckets as $storageId => $buckets) {
-            $context = new Context($this->getDriver($storageId), $buckets, $this->registry->getTable($class));
-            foreach ($callback($context) as $row) {
-                $result[] = $this->createInstance($class, $row);
-                if ($single) {
-                    break 2;
-                }
-            }
-        }
-
-        return $result;
-    }
-
     public function update(string $class, int $id, array $data): void
     {
-        $this->scan($class, $data, function (Context $context) use ($id, $data) {
-            $context->driver->update($context->table, $id, $data);
-        }, single: true);
+        $this->fetchInstance($class, $data, fn(Driver $driver, string $table) => $driver->update($table, $id, $data));
     }
 }
