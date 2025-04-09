@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		backupGlobals="false"
+		backupStaticAttributes="false"
+		bootstrap="./vendor/autoload.php"
+		cacheResult="false"
+		colors="false"
+		convertErrorsToExceptions="true"
+		convertNoticesToExceptions="true"
+		convertWarningsToExceptions="true"
+		stopOnFailure="false"
+		verbose="true">
+  	<coverage>
+		<include>
+		  	<directory>src</directory>
+		</include>
+		<report>
+		  	<clover outputFile="coverage.clover"/>
+		  	<text outputFile="coverage.txt"/>
+		</report>
+  	</coverage>
+  	<php>
+		<ini name="date.timezone" value="UTC" />
+		<ini name="display_errors" value="On" />
+		<ini name="display_startup_errors" value="On" />
+		<ini name="error_reporting" value="E_ALL" />
+
+		<env name="POSTGRES_USER" value="postgres" />
+		<env name="POSTGRES_PASSWORD" value="root" />
+		<env name="POSTGRES_HOST" value="127.0.0.1" />
+		<env name="POSTGRES_PORT" value="15432" />
+
+		<env name="TARANTOOL_HOST" value="127.0.0.1" />
+		<env name="TARANTOOL_PORT" value="13301" />
+  	</php>
+  	<testsuites>
+		<testsuite name="Tests">
+	  		<directory>./tests</directory>
+		</testsuite>
+  	</testsuites>
+</phpunit>

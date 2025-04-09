@@ -1,0 +1,30 @@
+{
+    "name": "basis/sharded",
+    "description": "Sharding framework",
+    "keywords": ["Basis", "sharding", "postgresql", "tarantool"],
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.0",
+        "psr/cache": "^2.0"
+    },
+    "require-dev": {
+        "doctrine/dbal": "^4.2.3",
+        "phpunit/phpunit": "^9.5",
+        "symfony/cache": "^7.2.5",
+        "tarantool/client": ">=0.10.1",
+        "tarantool/mapper": "^6.4.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Basis\\Sharded\\": "src/",
+            "Basis\\Sharded\\Test\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Dmitry Krokhin",
+            "email": "nekufa@gmail.com"
+        }
+    ]
+}
