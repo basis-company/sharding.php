@@ -54,7 +54,9 @@ class Router implements Database
             [$bucket] = $buckets;
         }
 
-        $data['bucket'] = $bucket->id;
+        if (!($bucket->flags & Bucket::DROP_PREFIX_FLAG)) {
+            $data['bucket'] = $bucket->id;
+        }
 
         if (!$bucket->storage) {
             $this->castStorage($bucket);
@@ -64,12 +66,14 @@ class Router implements Database
         return $this->createInstance($class, $row);
     }
 
-    public function createInstance(string $class, array|object $row): object
+    public function createInstance(string $class, array|object $row, bool $dropBucket = true): object
     {
         if (is_object($row)) {
             $row = get_object_vars($row);
         }
-        array_shift($row);
+        if ($dropBucket) {
+            array_shift($row);
+        }
         if (!class_exists($class)) {
             $class = $this->registry->getClass($class);
         }
@@ -89,6 +93,9 @@ class Router implements Database
     {
         $storageBuckets = [];
         foreach ($this->getBuckets($class, $data) as $bucket) {
+            if (!$bucket->storage) {
+                continue;
+            }
             if (!array_key_exists($bucket->storage, $storageBuckets)) {
                 $storageBuckets[$bucket->storage] = [$bucket];
             } else {
@@ -97,11 +104,16 @@ class Router implements Database
         }
 
         $result = [];
-        $table = $this->registry->getTable($class);
         foreach ($storageBuckets as $storageId => $buckets) {
+            $table = $this->registry->getTable($class);
+            $prefixPresent = $buckets[0]->flags & Bucket::DROP_PREFIX_FLAG;
+            if ($prefixPresent) {
+                [$_, $table] = explode('_', $table, 2);
+            }
             $driver = $this->getDriver($storageId);
-            foreach ($callback($driver, $table, $buckets) as $row) {
-                $result[] = $this->createInstance($class, $row);
+            $rows = $callback($driver, $table, $buckets);
+            foreach ($rows as $row) {
+                $result[] = $this->createInstance($class, $row, !$prefixPresent);
                 if ($single) {
                     break 2;
                 }
@@ -209,8 +221,12 @@ class Router implements Database
         return $this->drivers[$storageId];
     }
 
-    public function update(string $class, int $id, array $data): void
+    public function update(string $class, int $id, array $data): ?object
     {
-        $this->fetchInstance($class, $data, fn(Driver $driver, string $table) => $driver->update($table, $id, $data));
+        return $this->fetchInstance(
+            class: $class,
+            data: $data,
+            callback: fn (Driver $driver, string $table) => $driver->update($table, $id, $data)
+        );
     }
 }

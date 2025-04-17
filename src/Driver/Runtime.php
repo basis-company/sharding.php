@@ -87,14 +87,16 @@ class Runtime implements Driver
         return '';
     }
 
-    public function update(string $class, int $id, array $data): void
+    public function update(string $class, int $id, array $data): ?object
     {
         foreach (self::$data[$class] as $i => $row) {
             if ($row['id'] == $id) {
                 self::$data[$class][$i] = array_merge($row, $data);
-                break;
+                return (object) self::$data[$class][$i];
             }
         }
+
+        return null;
     }
 
     public function syncSchema(Schema $schema, Router $router): void

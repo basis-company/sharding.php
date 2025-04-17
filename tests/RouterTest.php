@@ -4,6 +4,7 @@ namespace Basis\Sharded\Test;
 
 use Basis\Sharded\Driver\Runtime;
 use Basis\Sharded\Driver\Tarantool;
+use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Storage;
 use Basis\Sharded\Registry;
 use Basis\Sharded\Router;
@@ -35,6 +36,17 @@ class RouterTest extends TestCase
         $this->assertSame(['id'], $model->getIndexes()[0]->fields);
         // index was defined using static initSchema method
         $this->assertSame(['username'], $model->getIndexes()[1]->fields);
+
+        $this->assertCount(0, $router->getBuckets(MapperLogin::class));
+        $this->assertCount(1, $router->getBuckets(MapperLogin::class, createIfNotExists: true));
+        [$bucket] = $router->getBuckets(MapperLogin::class, createIfNotExists: true);
+
+        $router->update(Bucket::class, $bucket->id, [
+            'flags' => Bucket::DROP_PREFIX_FLAG,
+            'storage' => 1,
+        ]);
+
+        $this->assertCount(1, $router->find(MapperLogin::class));
     }
 
     public function testRuntime()

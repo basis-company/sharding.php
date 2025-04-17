@@ -119,7 +119,7 @@ class Tarantool implements Driver
         }
     }
 
-    public function update(string $table, int $id, array $data): void
+    public function update(string $table, int $id, array $data): ?object
     {
         $operations = null;
         foreach ($data as $k => $v) {
@@ -129,6 +129,7 @@ class Tarantool implements Driver
                 $operations = Operations::set($k, $v);
             }
         }
-        $this->mapper->client->getSpace($table)->update([$id], $operations);
+
+        return (object) $this->mapper->client->getSpace($table)->update([$id], $operations);
     }
 }

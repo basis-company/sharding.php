@@ -9,5 +9,5 @@ interface Database
     public function findOne(string $class, array $query): ?object;
     public function findOrCreate(string $class, array $query, array $data = []): object;
     public function findOrFail(string $class, array $query): ?object;
-    public function update(string $class, int $id, array $data): void;
+    public function update(string $class, int $id, array $data): ?object;
 }

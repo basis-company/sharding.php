@@ -10,6 +10,8 @@ use Basis\Sharded\Schema\UniqueIndex;
 
 class Bucket implements Bootstrap, Subdomain, Indexing
 {
+    public const DROP_PREFIX_FLAG = 1;
+
     public const BUCKET_BUCKET_ID = 1;
     public const BUCKET_BUCKET_NAME = 'sharded_buckets';
 
@@ -31,7 +33,7 @@ class Bucket implements Bootstrap, Subdomain, Indexing
         public string $name,
         public int $shard,
         public int $storage,
-        public string $status,
+        public int $flags,
     ) {
     }
 
