@@ -7,10 +7,10 @@ use Basis\Sharded\Driver\Tarantool;
 use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Domain;
 use Basis\Sharded\Interface\Driver;
-use Basis\Sharded\Interface\Subdomain;
+use Basis\Sharded\Interface\Segment;
 use Basis\Sharded\Router;
 
-class Storage implements Bootstrap, Domain, Subdomain
+class Storage implements Bootstrap, Domain, Segment
 {
     public static $types = [
         'tarantool' => Tarantool::class,
@@ -36,7 +36,7 @@ class Storage implements Bootstrap, Domain, Subdomain
         return 'sharded';
     }
 
-    public static function getSubdomain(): string
+    public static function getSegment(): string
     {
         return 'storages';
     }

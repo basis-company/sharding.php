@@ -7,12 +7,12 @@ use Basis\Sharded\Driver\Tarantool;
 use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Domain;
 use Basis\Sharded\Interface\Indexing;
-use Basis\Sharded\Interface\Subdomain;
+use Basis\Sharded\Interface\Segment;
 use Basis\Sharded\Router;
 use Basis\Sharded\Schema\UniqueIndex;
 use Tarantool\Client\Schema\Operations;
 
-class Sequence implements Bootstrap, Domain, Subdomain, Indexing
+class Sequence implements Bootstrap, Domain, Segment, Indexing
 {
     public function __construct(
         public int $id,
@@ -50,7 +50,7 @@ class Sequence implements Bootstrap, Domain, Subdomain, Indexing
         ];
     }
 
-    public static function getSubdomain(): string
+    public static function getSegment(): string
     {
         return 'sequences';
     }

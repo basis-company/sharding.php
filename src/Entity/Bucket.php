@@ -4,11 +4,11 @@ namespace Basis\Sharded\Entity;
 
 use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Indexing;
-use Basis\Sharded\Interface\Subdomain;
+use Basis\Sharded\Interface\Segment;
 use Basis\Sharded\Router;
 use Basis\Sharded\Schema\UniqueIndex;
 
-class Bucket implements Bootstrap, Subdomain, Indexing
+class Bucket implements Bootstrap, Segment, Indexing
 {
     public const DROP_PREFIX_FLAG = 1;
 
@@ -73,7 +73,7 @@ class Bucket implements Bootstrap, Subdomain, Indexing
         ];
     }
 
-    public static function getSubdomain(): string
+    public static function getSegment(): string
     {
         return 'buckets';
     }

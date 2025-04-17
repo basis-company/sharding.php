@@ -2,9 +2,9 @@
 
 namespace Basis\Sharded\Test\Entity;
 
-use Basis\Sharded\Interface\Subdomain;
+use Basis\Sharded\Interface\Segment;
 
-class Post implements Subdomain
+class Post implements Segment
 {
     public function __construct(
         public int $id,
@@ -12,7 +12,7 @@ class Post implements Subdomain
     ) {
     }
 
-    public static function getSubdomain(): string
+    public static function getSegment(): string
     {
         return 'posts';
     }

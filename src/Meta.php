@@ -8,7 +8,7 @@ use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Sequence;
 use Basis\Sharded\Entity\Storage;
 use Basis\Sharded\Interface\Domain;
-use Basis\Sharded\Interface\Subdomain;
+use Basis\Sharded\Interface\Segment;
 use Basis\Sharded\Schema\Model;
 use Basis\Sharded\Schema\Schema;
 use Exception;
@@ -119,7 +119,7 @@ class Meta
 
         $parts = explode("\\", $class);
         $table = array_pop($parts);
-        $subdomain = null;
+        $segment = null;
 
         if (is_a($class, Domain::class, true)) {
             $domain = $class::getDomain();
@@ -129,15 +129,15 @@ class Meta
                 $domain = count($parts) ? array_pop($parts) : 'Default';
             }
         }
-        if (is_a($class, Subdomain::class, true)) {
-            $subdomain = $domain . '_'  . $class::getSubdomain();
+        if (is_a($class, Segment::class, true)) {
+            $segment = $domain . '_'  . $class::getSegment();
         }
 
         $domain = $this->toUnderscore($domain);
         $table = $this->toUnderscore((new ReflectionClass($class))->getShortName());
         $table = $domain . '_' . $table;
         $this->classTable[$class] = $table;
-        $this->tableDomain[$table] = $this->toUnderscore($subdomain ?: $domain);
+        $this->tableDomain[$table] = $this->toUnderscore($segment ?: $domain);
     }
 
     public function toUnderscore(string $string)

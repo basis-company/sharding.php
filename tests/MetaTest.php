@@ -47,7 +47,7 @@ class MetaTest extends TestCase
         $this->assertSame($meta->getTable(User::class), 'test_user');
     }
 
-    public function testSubdomains()
+    public function testSegments()
     {
         $meta = new Meta();
         $meta->register(Post::class);
