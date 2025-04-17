@@ -4,6 +4,7 @@ namespace Basis\Sharded\Schema;
 
 use Basis\Sharded\Interface\Indexing;
 use ReflectionClass;
+use Tarantool\Mapper\Space;
 
 class Model
 {
@@ -29,6 +30,17 @@ class Model
         $this->indexes[] = new UniqueIndex([$this->properties[0]->name]);
         if (is_a($class, Indexing::class, true)) {
             $this->indexes = array_merge($this->indexes, $class::getIndexes());
+        } elseif (method_exists($class, 'initSchema')) {
+            $class::initSchema($fake = new class extends Space {
+                public function __construct(public array $indexes = [])
+                {
+                }
+                public function addIndex(array $fields, array $options = []): void
+                {
+                    $this->indexes[] = new Index($fields, $options['unique'] ?? false);
+                }
+            });
+            $this->indexes = array_merge($this->indexes, $fake->indexes);
         }
     }
 
