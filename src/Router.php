@@ -14,7 +14,7 @@ use Exception;
 class Router implements Database
 {
     public function __construct(
-        public readonly Registry $registry,
+        public readonly Meta $meta,
         public readonly Driver $driver,
     ) {
     }
@@ -33,18 +33,18 @@ class Router implements Database
         [$storage] = $storages;
 
         $driver = $this->getDriver($storage->id);
-        $driver->update($this->registry->getTable(Bucket::class), $bucket->id, [
+        $driver->update($this->meta->getTable(Bucket::class), $bucket->id, [
             'storage' => $storage->id,
         ]);
 
         $bucket->storage = $storage->id;
-        $driver->syncSchema($this->registry->getSchema($bucket->name), $this);
+        $driver->syncSchema($this->meta->getSchema($bucket->name), $this);
     }
 
     public function create(string $class, array $data): object
     {
         if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
-            $data['id'] = Sequence::getNext($this, $this->registry->getTable($class));
+            $data['id'] = Sequence::getNext($this, $this->meta->getTable($class));
         }
 
         $buckets = $this->getBuckets($class, $data, createIfNotExists: true);
@@ -62,7 +62,7 @@ class Router implements Database
             $this->castStorage($bucket);
         }
 
-        $row = $this->getDriver($bucket->storage)->create($this->registry->getTable($class), $data);
+        $row = $this->getDriver($bucket->storage)->create($this->meta->getTable($class), $data);
         return $this->createInstance($class, $row);
     }
 
@@ -75,7 +75,7 @@ class Router implements Database
             array_shift($row);
         }
         if (!class_exists($class)) {
-            $class = $this->registry->getClass($class);
+            $class = $this->meta->getClass($class);
         }
         if ($class && class_exists($class)) {
             return new $class(...array_values($row));
@@ -105,7 +105,7 @@ class Router implements Database
 
         $result = [];
         foreach ($storageBuckets as $storageId => $buckets) {
-            $table = $this->registry->getTable($class);
+            $table = $this->meta->getTable($class);
             $prefixPresent = $buckets[0]->flags & Bucket::DROP_PREFIX_FLAG;
             if ($prefixPresent) {
                 [$_, $table] = explode('_', $table, 2);
@@ -147,7 +147,7 @@ class Router implements Database
         }
 
         $driver = $this->getDriver($bucket->storage);
-        $table = $this->registry->getTable($class);
+        $table = $this->meta->getTable($class);
 
         if (array_key_exists('id', $data)) {
             $row = $driver->findOrCreate($table, $query, $data);
@@ -175,22 +175,22 @@ class Router implements Database
 
     public function getBuckets(string $class, array $data = [], bool $createIfNotExists = false)
     {
-        if (!$this->driver->hasTable($this->registry->getTable(Bucket::class))) {
+        if (!$this->driver->hasTable($this->meta->getTable(Bucket::class))) {
             Bucket::initialize($this);
         }
 
         if (in_array($class, [Bucket::class, Storage::class, Sequence::class])) {
             $row = $this->driver->findOrFail(
-                $this->registry->getTable(Bucket::class),
-                ['id' => Bucket::KEYS[$this->registry->getDomain(Bucket::class)]],
+                $this->meta->getTable(Bucket::class),
+                ['id' => Bucket::KEYS[$this->meta->getDomain(Bucket::class)]],
             );
             return [$this->createInstance(Bucket::class, $row)];
         }
 
-        $table = $this->registry->getTable($class);
-        $domain = $this->registry->getDomain($table);
+        $table = $this->meta->getTable($class);
+        $domain = $this->meta->getDomain($table);
 
-        $buckets = $this->driver->find($this->registry->getTable(Bucket::class), ['name' => $domain]);
+        $buckets = $this->driver->find($this->meta->getTable(Bucket::class), ['name' => $domain]);
         $buckets = array_map(fn ($data) => $this->createInstance(Bucket::class, $data), $buckets);
 
         if (count($buckets)) {

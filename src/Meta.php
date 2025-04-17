@@ -14,7 +14,7 @@ use Basis\Sharded\Schema\Schema;
 use Exception;
 use ReflectionClass;
 
-class Registry
+class Meta
 {
     private array $classTable = [];
     private array $tableDomain = [];

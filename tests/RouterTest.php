@@ -6,7 +6,7 @@ use Basis\Sharded\Driver\Runtime;
 use Basis\Sharded\Driver\Tarantool;
 use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Registry;
+use Basis\Sharded\Meta;
 use Basis\Sharded\Router;
 use Basis\Sharded\Schema\Model;
 use Basis\Sharded\Test\Entity\MapperLogin;
@@ -25,9 +25,9 @@ class RouterTest extends TestCase
 
         $this->assertCount(1, $driver->mapper->find(MapperLogin::class));
 
-        $router = new Router(new Registry(), $driver);
-        $router->registry->register(MapperLogin::class);
-        $schema = $router->registry->getSchema('test');
+        $router = new Router(new Meta(), $driver);
+        $router->meta->register(MapperLogin::class);
+        $schema = $router->meta->getSchema('test');
         $this->assertCount(1, $schema->models);
         [$model] = $schema->models;
         $this->assertInstanceOf(Model::class, $model);
@@ -52,9 +52,9 @@ class RouterTest extends TestCase
     public function testRuntime()
     {
         Storage::$drivers = [];
-        $router = new Router(new Registry(), new Runtime());
+        $router = new Router(new Meta(), new Runtime());
         $this->assertCount(1, $router->find(Storage::class));
-        $router->registry->register(User::class);
+        $router->meta->register(User::class);
         // create first
         $router->create(User::class, ['name' => 'nekufa']);
         $this->assertCount(1, $router->find(User::class));
@@ -72,14 +72,14 @@ class RouterTest extends TestCase
     public function testTarantool()
     {
         Storage::$drivers = [];
-        $registry = new Registry();
-        $registry->register(User::class);
+        $meta = new Meta();
+        $meta->register(User::class);
 
         $driver = new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"));
         $driver->mapper->dropUserSpaces();
         $this->assertFalse($driver->mapper->hasSpace('test_user'));
 
-        $router = new Router($registry, $driver);
+        $router = new Router($meta, $driver);
         $this->assertCount(1, $router->find(Storage::class));
         $this->assertFalse($driver->mapper->hasSpace('test_user'));
         $router->create(User::class, ['name' => 'nekufa']);
@@ -97,8 +97,8 @@ class RouterTest extends TestCase
         $this->assertCount(3, $router->find('test.user'));
         $this->assertInstanceOf(User::class, $router->find('test.user')[0]);
 
-        $registry = new Registry();
-        $router = new Router($registry, $driver);
+        $meta = new Meta();
+        $router = new Router($meta, $driver);
         // schema based names
         $this->assertCount(3, $router->find('test.user'));
         // prefixed table names

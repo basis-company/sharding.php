@@ -39,21 +39,21 @@ class Bucket implements Bootstrap, Subdomain, Indexing
 
     public static function bootstrap(Router $router): void
     {
-        $router->driver->create($router->registry->getTable(self::class), [
+        $router->driver->create($router->meta->getTable(self::class), [
             'bucket' => Bucket::BUCKET_BUCKET_ID,
             'id' => Bucket::BUCKET_BUCKET_ID,
             'name' => Bucket::BUCKET_BUCKET_NAME,
             'storage' => 1,
         ]);
 
-        $router->driver->create($router->registry->getTable(self::class), [
+        $router->driver->create($router->meta->getTable(self::class), [
             'bucket' => Bucket::BUCKET_BUCKET_ID,
             'id' => Bucket::STORAGE_BUCKET_ID,
             'name' => Bucket::STORAGE_BUCKET_NAME,
             'storage' => 1,
         ]);
 
-        $router->driver->create($router->registry->getTable(self::class), [
+        $router->driver->create($router->meta->getTable(self::class), [
             'bucket' => Bucket::BUCKET_BUCKET_ID,
             'id' => Bucket::SEQUENCE_BUCKET_ID,
             'name' => Bucket::SEQUENCE_BUCKET_NAME,
@@ -80,7 +80,7 @@ class Bucket implements Bootstrap, Subdomain, Indexing
 
     public static function initialize(Router $router): void
     {
-        $schemas = array_map($router->registry->getSchema(...), array_keys(self::KEYS));
+        $schemas = array_map($router->meta->getSchema(...), array_keys(self::KEYS));
         array_walk($schemas, fn ($schema) => $router->driver->syncSchema($schema, $router));
     }
 }

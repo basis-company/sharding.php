@@ -25,15 +25,15 @@ class Sequence implements Bootstrap, Domain, Subdomain, Indexing
     {
         $router->create(self::class, [
             'id' => 1,
-            'name' => $router->registry->getTable(Sequence::class),
+            'name' => $router->meta->getTable(Sequence::class),
             'next' => 1,
         ]);
         $router->create(self::class, [
-            'name' => $router->registry->getTable(Bucket::class),
+            'name' => $router->meta->getTable(Bucket::class),
             'next' => 3,
         ]);
         $router->create(self::class, [
-            'name' => $router->registry->getTable(Storage::class),
+            'name' => $router->meta->getTable(Storage::class),
             'next' => 1,
         ]);
     }
@@ -70,12 +70,12 @@ class Sequence implements Bootstrap, Domain, Subdomain, Indexing
 
         if ($driver instanceof Tarantool) {
             $driver->getMapper()->update(
-                $router->registry->getTable(Sequence::class),
+                $router->meta->getTable(Sequence::class),
                 $sequence,
                 Operations::add('next', 1)
             );
         } elseif ($driver instanceof Runtime) {
-            $driver->update($router->registry->getTable(Sequence::class), $sequence->id, ['next' => ++$sequence->next]);
+            $driver->update($router->meta->getTable(Sequence::class), $sequence->id, ['next' => ++$sequence->next]);
         } else {
             throw new \Exception('Unsupported driver');
         }
