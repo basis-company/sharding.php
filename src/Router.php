@@ -142,8 +142,10 @@ class Router implements Database
         } else {
             $row = $driver->findOne($table, $query);
             if (!$row) {
-                $id = Sequence::getNext($this, $table);
-                $row = $driver->findOrCreate($table, $query, array_merge($data, compact('id')));
+                $row = $driver->findOrCreate($table, $query, array_merge($data, [
+                    'bucket' => $bucket->id,
+                    'id' => Sequence::getNext($this, $table),
+                ]));
             }
         }
 
