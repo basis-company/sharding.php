@@ -7,17 +7,19 @@ namespace Basis\Sharded;
 use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Sequence;
 use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Interface\Domain;
-use Basis\Sharded\Interface\Segment;
-use Basis\Sharded\Schema\Model;
-use Basis\Sharded\Schema\Schema;
+use Basis\Sharded\Interface\Domain as DomainInterface;
+use Basis\Sharded\Interface\Segment as SegmentInterface;
+use Basis\Sharded\Schema\Segment;
 use Exception;
-use ReflectionClass;
 
 class Meta
 {
-    private array $classTable = [];
-    private array $tableDomain = [];
+    public array $classes = [];
+    public array $segments = [];
+
+    public array $classSegment = [];
+    public array $tableClass = [];
+    public array $tableSegment = [];
 
     public function __construct()
     {
@@ -25,103 +27,46 @@ class Meta
         $this->register(Sequence::class);
         $this->register(Storage::class);
     }
-
-    public function getClass(string $table): ?string
+    public function getClassSegment(string $class): Segment
     {
-        $class = array_search($table, $this->classTable);
-        if (!$class) {
-            $class = array_search(str_replace('.', '_', $table), $this->classTable);
-        }
-
-        return $class ?: null;
+        return $this->getSegmentByName($this->classSegment[$class]);
     }
 
-    public function getClassDomain(string $class): string
+    public function getSegmentByName(string $name): Segment
     {
-        if (!array_key_exists($class, $this->classTable)) {
-            throw new Exception("Class $class not registered");
-        }
-        return $this->getTableDomain($this->classTable[$class]);
+        return $this->segments[$name];
     }
 
-    public function getClasses(?string $domain = null): array
+    public function getClassTable(string $class): string
     {
-        return array_map(
-            fn ($table) => array_search($table, $this->classTable),
-            array_keys($this->tableDomain, $domain)
-        );
+        return $this->getSegmentByName($this->classSegment[$class])->getTable($class);
     }
 
-    public function getDomain(string $classOrTable): string
+    public function getTableClass(string $table): string
     {
-        if (class_exists($classOrTable)) {
-            return $this->getClassDomain($classOrTable);
-        }
-        if (array_key_exists($classOrTable, $this->tableDomain)) {
-            return $this->getTableDomain($classOrTable);
-        }
-
-        if (str_contains($classOrTable, '.')) {
-            return explode('.', $classOrTable)[0];
-        }
-
-        if (str_contains($classOrTable, '_')) {
-            return explode('_', $classOrTable)[0];
-        }
-
-        throw new Exception("Invalid class or table $classOrTable");
+        return $this->tableClass[$table];
     }
 
-    public function getDomains(): array
+    public function getTableSegment(string $table): string
     {
-        return array_values(array_unique($this->tableDomain));
+        return $this->tableSegment[$table];
     }
 
-    public function getSchema(string $domain): Schema
+    public function hasTable(string $table): bool
     {
-        return new Schema(
-            $domain,
-            array_map(fn($class) => new Model($class, $this->getTable($class)), $this->getClasses($domain))
-        );
-    }
-
-    public function getTable(string $class): string
-    {
-        if (str_contains($class, ".")) {
-            return str_replace('.', '_', $class);
-        }
-
-        if (str_contains($class, "_")) {
-            return $class;
-        }
-
-        if (!array_key_exists($class, $this->classTable)) {
-            throw new Exception("Class $class not registered");
-        }
-
-        return $this->classTable[$class];
-    }
-
-    public function getTableDomain(string $table): string
-    {
-        if (!array_key_exists($table, $this->tableDomain)) {
-            throw new Exception("Table $table not registered");
-        }
-
-        return $this->tableDomain[$table];
+        return array_key_exists($table, $this->tableClass);
     }
 
     public function register(string $class)
     {
-        if (array_key_exists($class, $this->classTable)) {
+        if (array_key_exists($class, $this->classes)) {
             throw new Exception("Class $class already registered");
         }
 
         $parts = explode("\\", $class);
-        $table = array_pop($parts);
-        $segment = null;
+        array_pop($parts); // name
 
-        if (is_a($class, Domain::class, true)) {
+        if (is_a($class, DomainInterface::class, true)) {
             $domain = $class::getDomain();
         } else {
             $domain = array_pop($parts);
@@ -129,18 +74,27 @@ class Meta
                 $domain = count($parts) ? array_pop($parts) : 'Default';
             }
         }
-        if (is_a($class, Segment::class, true)) {
-            $segment = $domain . '_'  . $class::getSegment();
+        $domain = self::toUnderscore($domain);
+
+        $segment = '';
+        if (is_a($class, SegmentInterface::class, true)) {
+            $segment = $class::getSegment();
         }
 
-        $domain = $this->toUnderscore($domain);
-        $table = $this->toUnderscore((new ReflectionClass($class))->getShortName());
-        $table = $domain . '_' . $table;
-        $this->classTable[$class] = $table;
-        $this->tableDomain[$table] = $this->toUnderscore($segment ?: $domain);
+        $key = self::toUnderscore($domain . ($segment ? '_' . $segment : ''));
+        if (!array_key_exists($key, $this->segments)) {
+            $this->segments[$key] = new Segment($domain, $segment);
+        }
+
+        $this->segments[$key]->register($class);
+        $this->classSegment[$class] = $key;
+
+        $table = $this->segments[$key]->getTable($class);
+        $this->tableSegment[$table] = $key;
+        $this->tableClass[$table] = $class;
     }
 
-    public function toUnderscore(string $string)
+    public static function toUnderscore(string $string)
     {
         return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $string));
     }

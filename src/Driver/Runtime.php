@@ -6,6 +6,7 @@ use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Driver;
 use Basis\Sharded\Router;
 use Basis\Sharded\Schema\Schema;
+use Basis\Sharded\Schema\Segment;
 use Exception;
 
 class Runtime implements Driver
@@ -99,11 +100,11 @@ class Runtime implements Driver
         return null;
     }
 
-    public function syncSchema(Schema $schema, Router $router): void
+    public function syncSchema(Segment $segment, Router $router): void
     {
         $bootstrappers = [];
 
-        foreach ($schema->models as $model) {
+        foreach ($segment->getModels() as $model) {
             if (array_key_exists($model->table, self::$data)) {
                 continue;
             }

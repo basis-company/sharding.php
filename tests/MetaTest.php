@@ -14,14 +14,14 @@ class MetaTest extends TestCase
     public function testSystemBucket()
     {
         $meta = new Meta();
-        $this->assertSame($meta->getDomains(), [
+        $this->assertSame(array_keys($meta->segments), [
             Bucket::BUCKET_BUCKET_NAME,
             Bucket::SEQUENCE_BUCKET_NAME,
             Bucket::STORAGE_BUCKET_NAME,
         ]);
-        $this->assertSame($meta->getTableDomain('sharded_bucket'), 'sharded_buckets');
-        $this->assertSame($meta->getTableDomain('sharded_sequence'), 'sharded_sequences');
-        $this->assertSame($meta->getTableDomain('sharded_storage'), 'sharded_storages');
+        $this->assertSame($meta->getTableSegment('sharded_bucket'), 'sharded_buckets');
+        $this->assertSame($meta->getTableSegment('sharded_sequence'), 'sharded_sequences');
+        $this->assertSame($meta->getTableSegment('sharded_storage'), 'sharded_storages');
     }
 
     public function testDuplicateClass()
@@ -37,27 +37,27 @@ class MetaTest extends TestCase
     {
         $meta = new Meta();
         $meta->register(User::class);
-        $this->assertSame($meta->getDomains(), [
+        $this->assertSame(array_keys($meta->segments), [
             Bucket::BUCKET_BUCKET_NAME,
             Bucket::SEQUENCE_BUCKET_NAME,
             Bucket::STORAGE_BUCKET_NAME,
             'test'
         ]);
-        $this->assertSame($meta->getClasses('test'), [User::class]);
-        $this->assertSame($meta->getTable(User::class), 'test_user');
+        $this->assertSame($meta->getSegmentByName('test')->getClasses(), [User::class]);
+        $this->assertSame($meta->getClassTable(User::class), 'test_user');
     }
 
     public function testSegments()
     {
         $meta = new Meta();
         $meta->register(Post::class);
-        $this->assertSame($meta->getDomains(), [
+        $this->assertSame(array_keys($meta->segments), [
             Bucket::BUCKET_BUCKET_NAME,
             Bucket::SEQUENCE_BUCKET_NAME,
             Bucket::STORAGE_BUCKET_NAME,
             'test_posts'
         ]);
-        $this->assertSame($meta->getClasses('test_posts'), [Post::class]);
-        $this->assertSame($meta->getTable(Post::class), 'test_post');
+        $this->assertSame($meta->segments['test_posts']->getClasses(), [Post::class]);
+        $this->assertSame($meta->getClassTable(Post::class), 'test_post');
     }
 }

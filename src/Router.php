@@ -33,18 +33,18 @@ class Router implements Database
         [$storage] = $storages;
 
         $driver = $this->getDriver($storage->id);
-        $driver->update($this->meta->getTable(Bucket::class), $bucket->id, [
+        $driver->update($this->meta->getClassTable(Bucket::class), $bucket->id, [
             'storage' => $storage->id,
         ]);
 
         $bucket->storage = $storage->id;
-        $driver->syncSchema($this->meta->getSchema($bucket->name), $this);
+        $driver->syncSchema($this->meta->getSegmentByName($bucket->name), $this);
     }
 
     public function create(string $class, array $data): object
     {
         if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
-            $data['id'] = Sequence::getNext($this, $this->meta->getTable($class));
+            $data['id'] = Sequence::getNext($this, $this->meta->getClassTable($class));
         }
 
         $buckets = $this->getBuckets($class, $data, createIfNotExists: true);
@@ -62,7 +62,7 @@ class Router implements Database
             $this->castStorage($bucket);
         }
 
-        $row = $this->getDriver($bucket->storage)->create($this->meta->getTable($class), $data);
+        $row = $this->getDriver($bucket->storage)->create($this->meta->getClassTable($class), $data);
         return $this->createInstance($class, $row);
     }
 
@@ -73,9 +73,6 @@ class Router implements Database
         }
         if ($dropBucket) {
             array_shift($row);
-        }
-        if (!class_exists($class)) {
-            $class = $this->meta->getClass($class);
         }
         if ($class && class_exists($class)) {
             return new $class(...array_values($row));
@@ -105,7 +102,15 @@ class Router implements Database
 
         $result = [];
         foreach ($storageBuckets as $storageId => $buckets) {
-            $table = $this->meta->getTable($class);
+            $tableClass = null;
+            if (!class_exists($class)) {
+                $table = str_replace('.', '_', $class);
+                if ($this->meta->hasTable($table)) {
+                    $tableClass = $this->meta->getTableClass($table);
+                }
+            } else {
+                $table = $this->meta->getClassTable($class);
+            }
             $prefixPresent = $buckets[0]->flags & Bucket::DROP_PREFIX_FLAG;
             if ($prefixPresent) {
                 [$_, $table] = explode('_', $table, 2);
@@ -113,7 +118,7 @@ class Router implements Database
             $driver = $this->getDriver($storageId);
             $rows = $callback($driver, $table, $buckets);
             foreach ($rows as $row) {
-                $result[] = $this->createInstance($class, $row, !$prefixPresent);
+                $result[] = $this->createInstance($tableClass ?: $class, $row, !$prefixPresent);
                 if ($single) {
                     break 2;
                 }
@@ -147,7 +152,7 @@ class Router implements Database
         }
 
         $driver = $this->getDriver($bucket->storage);
-        $table = $this->meta->getTable($class);
+        $table = $this->meta->getClassTable($class);
 
         if (array_key_exists('id', $data)) {
             $row = $driver->findOrCreate($table, $query, $data);
@@ -175,22 +180,30 @@ class Router implements Database
 
     public function getBuckets(string $class, array $data = [], bool $createIfNotExists = false)
     {
-        if (!$this->driver->hasTable($this->meta->getTable(Bucket::class))) {
+        if (!$this->driver->hasTable($this->meta->getClassTable(Bucket::class))) {
             Bucket::initialize($this);
         }
 
         if (in_array($class, [Bucket::class, Storage::class, Sequence::class])) {
             $row = $this->driver->findOrFail(
-                $this->meta->getTable(Bucket::class),
-                ['id' => Bucket::KEYS[$this->meta->getDomain(Bucket::class)]],
+                $this->meta->getClassTable(Bucket::class),
+                ['id' => Bucket::KEYS[$this->meta->getClassSegment(Bucket::class)->prefix]],
             );
             return [$this->createInstance(Bucket::class, $row)];
         }
 
-        $table = $this->meta->getTable($class);
-        $domain = $this->meta->getDomain($table);
+        if (!class_exists($class)) {
+            foreach (['.', '_'] as $candidate) {
+                if (str_contains($class, $candidate)) {
+                    $domain = explode($candidate, $class, 2)[0];
+                    break;
+                }
+            }
+        } else {
+            $domain = $this->meta->getClassSegment($class)->prefix;
+        }
 
-        $buckets = $this->driver->find($this->meta->getTable(Bucket::class), ['name' => $domain]);
+        $buckets = $this->driver->find($this->meta->getClassTable(Bucket::class), ['name' => $domain]);
         $buckets = array_map(fn ($data) => $this->createInstance(Bucket::class, $data), $buckets);
 
         if (count($buckets)) {

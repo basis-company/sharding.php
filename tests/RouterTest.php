@@ -27,9 +27,9 @@ class RouterTest extends TestCase
 
         $router = new Router(new Meta(), $driver);
         $router->meta->register(MapperLogin::class);
-        $schema = $router->meta->getSchema('test');
-        $this->assertCount(1, $schema->models);
-        [$model] = $schema->models;
+        $schema = $router->meta->getClassSegment(MapperLogin::class);
+        $this->assertCount(1, $schema->getModels());
+        [$model] = $schema->getModels();
         $this->assertInstanceOf(Model::class, $model);
         assert($model instanceof Model);
         $this->assertCount(2, $model->getIndexes());
@@ -96,6 +96,9 @@ class RouterTest extends TestCase
         // test domain alias
         $this->assertCount(3, $router->find('test.user'));
         $this->assertInstanceOf(User::class, $router->find('test.user')[0]);
+
+        $this->assertCount(3, $router->find('test_user'));
+        $this->assertInstanceOf(User::class, $router->find('test_user')[0]);
 
         $meta = new Meta();
         $router = new Router($meta, $driver);
