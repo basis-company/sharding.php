@@ -66,7 +66,7 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
         ]);
 
         [$bucket] = $router->getBuckets(Sequence::class, createIfNotExists: true);
-        $driver = $router->getDriver($bucket->storage);
+        $driver = $router->getStorageDriver($bucket->storage);
 
         if ($driver instanceof Tarantool) {
             $driver->getMapper()->update(
@@ -75,7 +75,9 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
                 Operations::add('next', 1)
             );
         } elseif ($driver instanceof Runtime) {
-            $driver->update($router->meta->getClassTable(Sequence::class), $sequence->id, ['next' => ++$sequence->next]);
+            $driver->update($router->meta->getClassTable(Sequence::class), $sequence->id, [
+                'next' => ++$sequence->next
+            ]);
         } else {
             throw new \Exception('Unsupported driver');
         }
