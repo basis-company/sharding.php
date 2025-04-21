@@ -10,9 +10,12 @@ use Exception;
 
 class Locator
 {
+    public string $bucketsTable;
+
     public function __construct(
         public readonly Database $database,
     ) {
+        $this->bucketsTable = $database->meta->getClassTable(Bucket::class);
     }
 
     public function castStorage(Bucket $bucket): void
@@ -29,9 +32,7 @@ class Locator
         [$storage] = $storages;
 
         $driver = $this->database->getStorageDriver($storage->id);
-        $driver->update($this->database->meta->getClassTable(Bucket::class), $bucket->id, [
-            'storage' => $storage->id,
-        ]);
+        $driver->update($this->bucketsTable, $bucket->id, ['storage' => $storage->id]);
 
         $bucket->storage = $storage->id;
         $driver->syncSchema($this->database->meta->getSegmentByName($bucket->name), $this->database);
@@ -39,13 +40,8 @@ class Locator
 
     public function getBuckets(string $class, array $data = [], bool $create = false, bool $single = false): array
     {
-        $bucketTable = $this->database->meta->getClassTable(Bucket::class);
-        if (!$this->database->driver->hasTable($bucketTable)) {
-            Bucket::initialize($this->database);
-        }
-
         if ($class == Bucket::class) {
-            $row = $this->database->driver->findOrFail($bucketTable, ['id' => Bucket::BUCKET_BUCKET_ID]);
+            $row = $this->database->driver->findOrFail($this->bucketsTable, ['id' => Bucket::BUCKET_BUCKET_ID]);
             return [$this->database->createInstance(Bucket::class, $row)];
         }
 
@@ -60,7 +56,7 @@ class Locator
             $domain = $this->database->meta->getClassSegment($class)->prefix;
         }
 
-        $buckets = $this->database->driver->find($bucketTable, ['name' => $domain]);
+        $buckets = $this->database->driver->find($this->bucketsTable, ['name' => $domain]);
         $buckets = array_map(fn ($data) => $this->database->createInstance(Bucket::class, $data), $buckets);
 
         if ($single && count($buckets) > 1) {
@@ -76,5 +72,4 @@ class Locator
 
         return $buckets;
     }
-
 }

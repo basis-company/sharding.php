@@ -77,10 +77,4 @@ class Bucket implements Bootstrap, Segment, Indexing
     {
         return 'buckets';
     }
-
-    public static function initialize(Database $database): void
-    {
-        $schemas = array_map($database->meta->getSegmentByName(...), array_keys(self::KEYS));
-        array_walk($schemas, fn ($schema) => $database->driver->syncSchema($schema, $database));
-    }
 }

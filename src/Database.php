@@ -21,6 +21,11 @@ class Database implements DatabaseInterface
         public readonly Driver $driver,
     ) {
         $this->locator = new Locator($this);
+
+        if (!$driver->hasTable($meta->getClassTable(Bucket::class))) {
+            $segments = array_map($meta->getSegmentByName(...), array_keys(Bucket::KEYS));
+            array_walk($segments, fn ($segment) => $driver->syncSchema($segment, $this));
+        }
     }
 
     public function create(string $class, array $data): object
