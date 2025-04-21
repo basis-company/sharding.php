@@ -37,9 +37,9 @@ class DatabaseTest extends TestCase
         // index was defined using static initSchema method
         $this->assertSame(['username'], $model->getIndexes()[1]->fields);
 
-        $this->assertCount(0, $database->getBuckets(MapperLogin::class));
-        $this->assertCount(1, $database->getBuckets(MapperLogin::class, createIfNotExists: true));
-        [$bucket] = $database->getBuckets(MapperLogin::class, createIfNotExists: true);
+        $this->assertCount(0, $database->locate(MapperLogin::class));
+        $this->assertCount(1, $database->locate(MapperLogin::class, create: true));
+        [$bucket] = $database->locate(MapperLogin::class, create: true);
 
         $database->update(Bucket::class, $bucket->id, [
             'flags' => Bucket::DROP_PREFIX_FLAG,

@@ -66,7 +66,7 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
             'next' => 0,
         ]);
 
-        [$bucket] = $database->getBuckets(Sequence::class, createIfNotExists: true);
+        [$bucket] = $database->locate(Sequence::class, create: true);
         $driver = $database->getStorageDriver($bucket->storage);
 
         if ($driver instanceof Tarantool) {

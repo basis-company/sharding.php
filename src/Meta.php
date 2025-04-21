@@ -27,6 +27,7 @@ class Meta
         $this->register(Sequence::class);
         $this->register(Storage::class);
     }
+
     public function getClassSegment(string $class): Segment
     {
         return $this->getSegmentByName($this->classSegment[$class]);
