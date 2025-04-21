@@ -43,10 +43,9 @@ class Router implements Database
 
     public function create(string $class, array $data): object
     {
-        return $this->fetchOne(
-            class: $class,
-            buckets: $this->getBuckets($class, $data, castStorage: true, createIfNotExists: true),
-            callback: function (Driver $driver, string $table, array $buckets) use ($class, $data) {
+        return $this->fetchOne($class)
+            ->from($this->getBuckets($class, $data, castStorage: true, createIfNotExists: true))
+            ->using(function (Driver $driver, string $table, array $buckets) use ($class, $data) {
                 if (!($buckets[0]->flags & Bucket::DROP_PREFIX_FLAG)) {
                     $data['bucket'] = $buckets[0]->id;
                 }
@@ -54,8 +53,7 @@ class Router implements Database
                     $data['id'] = Sequence::getNext($this, $table);
                 }
                 return [$driver->create($table, $data)];
-            }
-        );
+            });
     }
 
     public function createInstance(string $class, array|object $row, bool $dropBucket = true): object
@@ -72,49 +70,14 @@ class Router implements Database
         return (object) $row;
     }
 
-    public function fetch(string $class, array $buckets, callable $callback): array
+    public function fetch(string $class): Fetch
     {
-        $storageBuckets = [];
-        foreach ($buckets as $bucket) {
-            if (!$bucket->storage) {
-                continue;
-            }
-            if (!array_key_exists($bucket->storage, $storageBuckets)) {
-                $storageBuckets[$bucket->storage] = [$bucket];
-            } else {
-                $storageBuckets[$bucket->storage][] = $bucket;
-            }
-        }
-
-        $result = [];
-        foreach ($storageBuckets as $storageId => $buckets) {
-            $tableClass = null;
-            if (!class_exists($class)) {
-                $table = str_replace('.', '_', $class);
-                if ($this->meta->hasTable($table)) {
-                    $tableClass = $this->meta->getTableClass($table);
-                }
-            } else {
-                $table = $this->meta->getClassTable($class);
-            }
-            $prefixPresent = $buckets[0]->flags & Bucket::DROP_PREFIX_FLAG;
-            if ($prefixPresent) {
-                [$_, $table] = explode('_', $table, 2);
-            }
-            $driver = $this->getStorageDriver($storageId);
-            $rows = $callback($driver, $table, $buckets);
-            foreach ($rows as $row) {
-                $result[] = $this->createInstance($tableClass ?: $class, $row, !$prefixPresent);
-            }
-        }
-
-        return $result;
+        return new Fetch($this, $class);
     }
 
-    public function fetchOne(string $class, array $buckets, callable $callback): ?object
+    public function fetchOne(string $class): Fetch
     {
-        $rows = $this->fetch($class, $buckets, $callback);
-        return count($rows) ? $rows[0] : null;
+        return new Fetch($this, $class, true);
     }
 
     public function fetchInstances(
@@ -125,33 +88,29 @@ class Router implements Database
         bool $createIfNotExists = true
     ): array {
         $buckets = $this->getBuckets($class, $data, castStorage: $castStorage, createIfNotExists: $createIfNotExists);
-        return $this->fetch($class, $buckets, $callback);
+
+        return $this->fetch($class)->from($buckets)->using($callback);
     }
 
     public function find(string $class, array $data = []): array
     {
-        return $this->fetch(
-            class: $class,
-            buckets: $this->getBuckets($class, $data),
-            callback: fn(Driver $driver, string $table) => $driver->find($table, $data),
-        );
+        return $this->fetch($class)
+            ->from($this->getBuckets($class, $data))
+            ->using(fn(Driver $driver, string $table) => $driver->find($table, $data));
     }
 
     public function findOne(string $class, array $query): ?object
     {
-        return $this->fetchOne(
-            class: $class,
-            buckets: $this->getBuckets($class, $query, single: true),
-            callback: fn(Driver $driver, string $table) => $driver->findOne($table, $query),
-        );
+        return $this->fetchOne($class)
+            ->from($this->getBuckets($class, $query, single: true))
+            ->using(fn(Driver $driver, string $table) => $driver->findOne($table, $query));
     }
 
     public function findOrCreate(string $class, array $query, array $data = []): object
     {
-        return $this->fetchOne(
-            class: $class,
-            buckets: $this->getBuckets($class, $data, castStorage: true, createIfNotExists: true),
-            callback: function (Driver $driver, string $table, array $buckets) use ($class, $query, $data) {
+        return $this->fetchOne($class)
+            ->from($this->getBuckets($class, $data, castStorage: true, createIfNotExists: true))
+            ->using(function (Driver $driver, string $table, array $buckets) use ($class, $query, $data) {
                 if (array_key_exists('id', $data)) {
                     $row = $driver->findOrCreate($table, $query, $data);
                 } else {
@@ -167,8 +126,7 @@ class Router implements Database
                     }
                 }
                 return [$row];
-            },
-        );
+            });
     }
 
     public function findOrFail(string $class, array $query): ?object
@@ -246,10 +204,8 @@ class Router implements Database
 
     public function update(string $class, int $id, array $data): ?object
     {
-        return $this->fetchOne(
-            $class,
-            buckets: $this->getBuckets($class, $data, single: true),
-            callback: fn (Driver $driver, string $table) => $driver->update($table, $id, $data),
-        );
+        return $this->fetchOne($class)
+            ->from($this->getBuckets($class, $data, single: true))
+            ->using(fn (Driver $driver, string $table) => $driver->update($table, $id, $data));
     }
 }
