@@ -2,6 +2,7 @@
 
 namespace Basis\Sharded\Entity;
 
+use Basis\Sharded\Database;
 use Basis\Sharded\Driver\Runtime;
 use Basis\Sharded\Driver\Tarantool;
 use Basis\Sharded\Interface\Bootstrap;
@@ -21,19 +22,19 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
     ) {
     }
 
-    public static function bootstrap(Router $router): void
+    public static function bootstrap(Database $database): void
     {
-        $router->create(self::class, [
+        $database->create(self::class, [
             'id' => 1,
-            'name' => $router->meta->getClassTable(Sequence::class),
+            'name' => $database->meta->getClassTable(Sequence::class),
             'next' => 1,
         ]);
-        $router->create(self::class, [
-            'name' => $router->meta->getClassTable(Bucket::class),
+        $database->create(self::class, [
+            'name' => $database->meta->getClassTable(Bucket::class),
             'next' => 3,
         ]);
-        $router->create(self::class, [
-            'name' => $router->meta->getClassTable(Storage::class),
+        $database->create(self::class, [
+            'name' => $database->meta->getClassTable(Storage::class),
             'next' => 1,
         ]);
     }
@@ -55,9 +56,9 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
         return 'sequences';
     }
 
-    public static function getNext(Router $router, string $name): int
+    public static function getNext(Database $database, string $name): int
     {
-        $sequence = $router->findOrCreate(self::class, [
+        $sequence = $database->findOrCreate(self::class, [
             'name' => $name
         ], [
             'bucket' => Bucket::SEQUENCE_BUCKET_ID,
@@ -65,17 +66,17 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
             'next' => 0,
         ]);
 
-        [$bucket] = $router->getBuckets(Sequence::class, createIfNotExists: true);
-        $driver = $router->getStorageDriver($bucket->storage);
+        [$bucket] = $database->getBuckets(Sequence::class, createIfNotExists: true);
+        $driver = $database->getStorageDriver($bucket->storage);
 
         if ($driver instanceof Tarantool) {
             $driver->getMapper()->update(
-                $router->meta->getClassTable(Sequence::class),
+                $database->meta->getClassTable(Sequence::class),
                 $sequence,
                 Operations::add('next', 1)
             );
         } elseif ($driver instanceof Runtime) {
-            $driver->update($router->meta->getClassTable(Sequence::class), $sequence->id, [
+            $driver->update($database->meta->getClassTable(Sequence::class), $sequence->id, [
                 'next' => ++$sequence->next
             ]);
         } else {

@@ -2,10 +2,9 @@
 
 namespace Basis\Sharded\Driver;
 
+use Basis\Sharded\Database;
 use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Driver;
-use Basis\Sharded\Router;
-use Basis\Sharded\Schema\Schema;
 use Basis\Sharded\Schema\Segment;
 use Exception;
 
@@ -100,7 +99,7 @@ class Runtime implements Driver
         return null;
     }
 
-    public function syncSchema(Segment $segment, Router $router): void
+    public function syncSchema(Segment $segment, Database $database): void
     {
         $bootstrappers = [];
 
@@ -116,7 +115,7 @@ class Runtime implements Driver
         }
 
         foreach ($bootstrappers as $bootstrapper) {
-            $bootstrapper::bootstrap($router);
+            $bootstrapper::bootstrap($database);
         }
     }
 

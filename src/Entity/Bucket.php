@@ -5,7 +5,7 @@ namespace Basis\Sharded\Entity;
 use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Indexing;
 use Basis\Sharded\Interface\Segment;
-use Basis\Sharded\Router;
+use Basis\Sharded\Database;
 use Basis\Sharded\Schema\UniqueIndex;
 
 class Bucket implements Bootstrap, Segment, Indexing
@@ -37,23 +37,23 @@ class Bucket implements Bootstrap, Segment, Indexing
     ) {
     }
 
-    public static function bootstrap(Router $router): void
+    public static function bootstrap(Database $database): void
     {
-        $router->driver->create($router->meta->getClassTable(self::class), [
+        $database->driver->create($database->meta->getClassTable(self::class), [
             'bucket' => Bucket::BUCKET_BUCKET_ID,
             'id' => Bucket::BUCKET_BUCKET_ID,
             'name' => Bucket::BUCKET_BUCKET_NAME,
             'storage' => 1,
         ]);
 
-        $router->driver->create($router->meta->getClassTable(self::class), [
+        $database->driver->create($database->meta->getClassTable(self::class), [
             'bucket' => Bucket::BUCKET_BUCKET_ID,
             'id' => Bucket::STORAGE_BUCKET_ID,
             'name' => Bucket::STORAGE_BUCKET_NAME,
             'storage' => 1,
         ]);
 
-        $router->driver->create($router->meta->getClassTable(self::class), [
+        $database->driver->create($database->meta->getClassTable(self::class), [
             'bucket' => Bucket::BUCKET_BUCKET_ID,
             'id' => Bucket::SEQUENCE_BUCKET_ID,
             'name' => Bucket::SEQUENCE_BUCKET_NAME,
@@ -78,9 +78,9 @@ class Bucket implements Bootstrap, Segment, Indexing
         return 'buckets';
     }
 
-    public static function initialize(Router $router): void
+    public static function initialize(Database $database): void
     {
-        $schemas = array_map($router->meta->getSegmentByName(...), array_keys(self::KEYS));
-        array_walk($schemas, fn ($schema) => $router->driver->syncSchema($schema, $router));
+        $schemas = array_map($database->meta->getSegmentByName(...), array_keys(self::KEYS));
+        array_walk($schemas, fn ($schema) => $database->driver->syncSchema($schema, $database));
     }
 }

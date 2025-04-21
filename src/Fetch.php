@@ -11,7 +11,7 @@ class Fetch
     public array $buckets = [];
 
     public function __construct(
-        public readonly Router $router,
+        public readonly Database $database,
         public readonly string $class,
         public bool $one = false,
     ) {
@@ -42,20 +42,20 @@ class Fetch
             $tableClass = null;
             if (!class_exists($this->class)) {
                 $table = str_replace('.', '_', $this->class);
-                if ($this->router->meta->hasTable($table)) {
-                    $tableClass = $this->router->meta->getTableClass($table);
+                if ($this->database->meta->hasTable($table)) {
+                    $tableClass = $this->database->meta->getTableClass($table);
                 }
             } else {
-                $table = $this->router->meta->getClassTable($this->class);
+                $table = $this->database->meta->getClassTable($this->class);
             }
             $prefixPresent = $buckets[0]->flags & Bucket::DROP_PREFIX_FLAG;
             if ($prefixPresent) {
                 [$_, $table] = explode('_', $table, 2);
             }
-            $driver = $this->router->getStorageDriver($storageId);
+            $driver = $this->database->getStorageDriver($storageId);
             $rows = $callback($driver, $table, $buckets);
             foreach ($rows as $row) {
-                $result[] = $this->router->createInstance($tableClass ?: $this->class, $row, !$prefixPresent);
+                $result[] = $this->database->createInstance($tableClass ?: $this->class, $row, !$prefixPresent);
             }
         }
 

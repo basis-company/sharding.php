@@ -2,10 +2,10 @@
 
 namespace Basis\Sharded\Driver;
 
+use Basis\Sharded\Database;
 use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Driver;
 use Basis\Sharded\Router;
-use Basis\Sharded\Schema\Schema;
 use Basis\Sharded\Schema\Segment;
 use Exception;
 use Tarantool\Client\Client;
@@ -75,7 +75,7 @@ class Tarantool implements Driver
         return $this->mapper->hasSpace($table);
     }
 
-    public function syncSchema(Segment $segment, Router $router): void
+    public function syncSchema(Segment $segment, Database $database): void
     {
         $bootstrap = [];
         foreach ($segment->getModels() as $model) {
@@ -116,7 +116,7 @@ class Tarantool implements Driver
         }
 
         foreach ($bootstrap as $class) {
-            $class::bootstrap($router);
+            $class::bootstrap($database);
         }
     }
 

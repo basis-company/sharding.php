@@ -2,6 +2,7 @@
 
 namespace Basis\Sharded\Entity;
 
+use Basis\Sharded\Database;
 use Basis\Sharded\Driver\Runtime;
 use Basis\Sharded\Driver\Tarantool;
 use Basis\Sharded\Interface\Bootstrap;
@@ -22,12 +23,12 @@ class Storage implements Bootstrap, Domain, Segment
      */
     public static array $drivers = [];
 
-    public static function bootstrap(Router $router): void
+    public static function bootstrap(Database $database): void
     {
-        $router->create(self::class, [
+        $database->create(self::class, [
             'id' => 1,
-            'type' => array_search(get_class($router->driver), self::$types),
-            'dsn' => $router->driver->getDsn(),
+            'type' => array_search(get_class($database->driver), self::$types),
+            'dsn' => $database->driver->getDsn(),
         ]);
     }
 

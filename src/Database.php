@@ -7,11 +7,11 @@ namespace Basis\Sharded;
 use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Sequence;
 use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Interface\Database;
+use Basis\Sharded\Interface\Database as DatabaseInterface;
 use Basis\Sharded\Interface\Driver;
 use Exception;
 
-class Router implements Database
+class Database implements DatabaseInterface
 {
     public function __construct(
         public readonly Meta $meta,
