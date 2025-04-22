@@ -17,9 +17,13 @@ class Fetch
     ) {
     }
 
-    public function from(array $buckets): self
+    public function from(array $buckets, $create = false, bool $single = false): self
     {
-        $this->buckets = $buckets;
+        if (array_is_list($buckets) && count($buckets) && $buckets[0] instanceof Bucket) {
+            $this->buckets = $buckets;
+        } else {
+            $this->buckets = $this->database->locate($this->class, $buckets, $create, $single);
+        }
         return $this;
     }
 
