@@ -31,8 +31,7 @@ class Database implements DatabaseInterface
 
     public function create(string $class, array $data): object
     {
-        return $this->fetch($class)
-            ->first()
+        return $this->fetchOne($class)
             ->from($data, create: true)
             ->using(function (Driver $driver, string $table, array $buckets) use ($class, $data) {
                 if (!Bucket::isDedicated($buckets[0])) {
@@ -65,8 +64,7 @@ class Database implements DatabaseInterface
             [$class, $id] = [get_class($class), $class->id];
         }
 
-        return $this->fetch($class)
-            ->first()
+        return $this->fetchOne($class)
             ->from(['id' => $id])
             ->using(fn (Driver $driver, string $table) => [$driver->delete($table, $id)]);
     }
@@ -74,6 +72,11 @@ class Database implements DatabaseInterface
     public function fetch(string $class): Fetch
     {
         return new Fetch($this, $class);
+    }
+
+    public function fetchOne(string $class): Fetch
+    {
+        return $this->fetch($class)->first();
     }
 
     public function find(string $class, array $data = []): array
@@ -85,16 +88,14 @@ class Database implements DatabaseInterface
 
     public function findOne(string $class, array $query): ?object
     {
-        return $this->fetch($class)
-            ->first()
+        return $this->fetchOne($class)
             ->from($query, single: true)
             ->using(fn(Driver $driver, string $table) => [$driver->findOne($table, $query)]);
     }
 
     public function findOrCreate(string $class, array $query, array $data = []): object
     {
-        return $this->fetch($class)
-            ->first()
+        return $this->fetchOne($class)
             ->from($data, create: true)
             ->using(function (Driver $driver, string $table, array $buckets) use ($class, $query, $data) {
                 if (array_key_exists('id', $data)) {
@@ -156,8 +157,7 @@ class Database implements DatabaseInterface
         if (is_object($class)) {
             [$class, $id, $data] = [get_class($class), $class->id, $id];
         }
-        return $this->fetch($class)
-            ->first()
+        return $this->fetchOne($class)
             ->from($data, single: true)
             ->using(fn (Driver $driver, string $table) => [$driver->update($table, $id, $data)]);
     }
