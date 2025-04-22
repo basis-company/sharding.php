@@ -33,7 +33,7 @@ class Database implements DatabaseInterface
         return $this->fetchOne($class)
             ->from($this->locate($class, $data, create: true))
             ->using(function (Driver $driver, string $table, array $buckets) use ($class, $data) {
-                if (!($buckets[0]->flags & Bucket::DROP_PREFIX_FLAG)) {
+                if (!Bucket::isDedicated($buckets[0])) {
                     $data['bucket'] = $buckets[0]->id;
                 }
                 if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
@@ -43,12 +43,12 @@ class Database implements DatabaseInterface
             });
     }
 
-    public function createInstance(string $class, array|object $row, bool $dropBucket = true): object
+    public function createInstance(string $class, array|object $row, bool $isDedicated = false): object
     {
         if (is_object($row)) {
             $row = get_object_vars($row);
         }
-        if ($dropBucket) {
+        if (!$isDedicated) {
             array_shift($row);
         }
         if ($class && class_exists($class)) {
@@ -94,7 +94,7 @@ class Database implements DatabaseInterface
                         if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
                             $extra['id'] = Sequence::getNext($this, $table);
                         }
-                        if (!($buckets[0]->flags & Bucket::DROP_PREFIX_FLAG)) {
+                        if (!Bucket::isDedicated($buckets[0])) {
                             $extra['bucket'] = $buckets[0]->id;
                         }
                         $row = $driver->findOrCreate($table, $query, array_merge($data, $extra));

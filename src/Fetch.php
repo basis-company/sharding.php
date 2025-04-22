@@ -48,14 +48,17 @@ class Fetch
             } else {
                 $table = $this->database->meta->getClassTable($this->class);
             }
-            $prefixPresent = $buckets[0]->flags & Bucket::DROP_PREFIX_FLAG;
-            if ($prefixPresent) {
+            if (Bucket::isDedicated($buckets[0])) {
                 [$_, $table] = explode('_', $table, 2);
             }
             $driver = $this->database->getStorageDriver($storageId);
             $rows = $callback($driver, $table, $buckets);
             foreach ($rows as $row) {
-                $result[] = $this->database->createInstance($tableClass ?: $this->class, $row, !$prefixPresent);
+                $result[] = $this->database->createInstance(
+                    class: $tableClass ?: $this->class,
+                    row: $row,
+                    isDedicated: Bucket::isDedicated($buckets[0]),
+                );
             }
         }
 

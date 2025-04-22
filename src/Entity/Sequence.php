@@ -61,7 +61,7 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
         $sequence = $database->findOrCreate(self::class, [
             'name' => $name
         ], [
-            'bucket' => Bucket::SEQUENCE_BUCKET_ID,
+            'bucket' => Bucket::KEYS[Bucket::SEQUENCE_BUCKET_NAME],
             'name' => $name,
             'next' => 0,
         ]);

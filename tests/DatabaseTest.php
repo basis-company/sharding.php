@@ -42,7 +42,7 @@ class DatabaseTest extends TestCase
         [$bucket] = $database->locate(MapperLogin::class, create: true);
 
         $database->update(Bucket::class, $bucket->id, [
-            'flags' => Bucket::DROP_PREFIX_FLAG,
+            'flags' => Bucket::DEDICATED_FLAG,
             'storage' => 1,
         ]);
 

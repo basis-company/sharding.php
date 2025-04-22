@@ -10,21 +10,16 @@ use Basis\Sharded\Schema\UniqueIndex;
 
 class Bucket implements Bootstrap, Segment, Indexing
 {
-    public const DROP_PREFIX_FLAG = 1;
+    public const DEDICATED_FLAG = 1;
 
-    public const BUCKET_BUCKET_ID = 1;
     public const BUCKET_BUCKET_NAME = 'sharded_buckets';
-
-    public const STORAGE_BUCKET_ID = 2;
     public const STORAGE_BUCKET_NAME = 'sharded_storages';
-
-    public const SEQUENCE_BUCKET_ID = 3;
     public const SEQUENCE_BUCKET_NAME = 'sharded_sequences';
 
     public const KEYS = [
-        self::BUCKET_BUCKET_NAME => self::BUCKET_BUCKET_ID,
-        self::STORAGE_BUCKET_NAME => self::STORAGE_BUCKET_ID,
-        self::SEQUENCE_BUCKET_NAME => self::SEQUENCE_BUCKET_ID,
+        self::BUCKET_BUCKET_NAME => 1,
+        self::STORAGE_BUCKET_NAME => 2,
+        self::SEQUENCE_BUCKET_NAME => 3,
     ];
 
     public function __construct(
@@ -40,22 +35,22 @@ class Bucket implements Bootstrap, Segment, Indexing
     public static function bootstrap(Database $database): void
     {
         $database->driver->create($database->meta->getClassTable(self::class), [
-            'bucket' => Bucket::BUCKET_BUCKET_ID,
-            'id' => Bucket::BUCKET_BUCKET_ID,
+            'bucket' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
+            'id' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
             'name' => Bucket::BUCKET_BUCKET_NAME,
             'storage' => 1,
         ]);
 
         $database->driver->create($database->meta->getClassTable(self::class), [
-            'bucket' => Bucket::BUCKET_BUCKET_ID,
-            'id' => Bucket::STORAGE_BUCKET_ID,
+            'bucket' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
+            'id' => Bucket::KEYS[Bucket::STORAGE_BUCKET_NAME],
             'name' => Bucket::STORAGE_BUCKET_NAME,
             'storage' => 1,
         ]);
 
         $database->driver->create($database->meta->getClassTable(self::class), [
-            'bucket' => Bucket::BUCKET_BUCKET_ID,
-            'id' => Bucket::SEQUENCE_BUCKET_ID,
+            'bucket' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
+            'id' => Bucket::KEYS[Bucket::SEQUENCE_BUCKET_NAME],
             'name' => Bucket::SEQUENCE_BUCKET_NAME,
             'storage' => 1,
         ]);
@@ -76,5 +71,10 @@ class Bucket implements Bootstrap, Segment, Indexing
     public static function getSegment(): string
     {
         return 'buckets';
+    }
+
+    public static function isDedicated(self $bucket): bool
+    {
+        return boolval($bucket->flags & self::DEDICATED_FLAG);
     }
 }

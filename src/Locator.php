@@ -41,7 +41,9 @@ class Locator
     public function getBuckets(string $class, array $data = [], bool $create = false, bool $single = false): array
     {
         if ($class == Bucket::class) {
-            $row = $this->database->driver->findOrFail($this->bucketsTable, ['id' => Bucket::BUCKET_BUCKET_ID]);
+            $row = $this->database->driver->findOrFail($this->bucketsTable, [
+                'id' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME]
+            ]);
             return [$this->database->createInstance(Bucket::class, $row)];
         }
 
