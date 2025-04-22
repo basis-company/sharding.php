@@ -93,6 +93,10 @@ class DatabaseTest extends TestCase
         $database->findOrCreate(User::class, ['name' => 'nekufa3']);
         $this->assertCount(3, $database->find(User::class));
 
+        $database->update(User::class, 1, ['name' => 'nekufa14']);
+        $this->assertCount(3, $database->find(User::class));
+        $this->assertSame($database->findOrCreate(User::class, ['id' => 1], ['name' => '??'])->name, 'nekufa14');
+
         // test domain alias
         $this->assertCount(3, $database->find('test.user'));
         $this->assertInstanceOf(User::class, $database->find('test.user')[0]);
@@ -106,5 +110,11 @@ class DatabaseTest extends TestCase
         $this->assertCount(3, $database->find('test.user'));
         // prefixed table names
         $this->assertCount(3, $database->find('test_user'));
+
+        $database->update('test.user', 2, ['name' => 'nekufa22']);
+        $this->assertSame($database->findOrCreate('test.user', ['id' => 2], ['name' => '??'])->name, 'nekufa22');
+
+        $database->update('test.user', 2, ['name' => 'nekufa23']);
+        $this->assertSame($database->findOrFail('test.user', ['id' => 2])->name, 'nekufa23');
     }
 }

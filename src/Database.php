@@ -78,7 +78,7 @@ class Database implements DatabaseInterface
     {
         return $this->fetchOne($class)
             ->from($this->locate($class, $query, single: true))
-            ->using(fn(Driver $driver, string $table) => $driver->findOne($table, $query));
+            ->using(fn(Driver $driver, string $table) => [$driver->findOne($table, $query)]);
     }
 
     public function findOrCreate(string $class, array $query, array $data = []): object
@@ -106,11 +106,7 @@ class Database implements DatabaseInterface
 
     public function findOrFail(string $class, array $query): ?object
     {
-        $row = $this->findOne($class, $query);
-        if (!$row) {
-            throw new Exception('No ' . $class . ' found');
-        }
-        return $row;
+        return $this->findOne($class, $query) ?: throw new Exception('No ' . $class . ' found');
     }
 
     public function getStorageDriver(int $storageId): Driver
