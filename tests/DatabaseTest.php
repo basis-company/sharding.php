@@ -30,7 +30,7 @@ class DatabaseTest extends TestCase
     #[DataProvider('provideDrivers')]
     public function testStrings(Driver $driver)
     {
-        $database = new Database(new Schema(), $driver->reset());
+        $database = new Database($driver->reset());
         $database->schema->register(Document::class);
         $this->assertCount(1, $database->find(Storage::class));
         $document = $database->create(Document::class, ['name' => 'test']);
@@ -43,7 +43,7 @@ class DatabaseTest extends TestCase
     #[DataProvider('provideDrivers')]
     public function testClassCasting(Driver $driver)
     {
-        $database = new Database(new Schema(), $driver->reset());
+        $database = new Database($driver->reset());
         $this->assertCount(1, $database->find(Storage::class));
         $database->schema->register(User::class);
 
@@ -69,7 +69,7 @@ class DatabaseTest extends TestCase
 
         $this->assertCount(1, $driver->mapper->find(MapperLogin::class));
 
-        $database = new Database(new Schema(), $driver);
+        $database = new Database($driver);
         $database->schema->register(MapperLogin::class);
         $schema = $database->schema->getClassSegment(MapperLogin::class);
         $this->assertCount(1, $schema->getModels());
@@ -96,7 +96,7 @@ class DatabaseTest extends TestCase
     #[DataProvider('provideDrivers')]
     public function testCrud(Driver $driver)
     {
-        $database = new Database(new Schema(), $driver->reset());
+        $database = new Database($driver->reset());
         $this->assertCount(1, $database->find(Storage::class));
         $database->schema->register(User::class);
         // create first
@@ -125,7 +125,7 @@ class DatabaseTest extends TestCase
         $schema = new Schema();
         $schema->register(User::class);
 
-        $database = new Database($schema, $driver->reset());
+        $database = new Database($driver->reset(), $schema);
         $this->assertCount(1, $database->find(Storage::class));
         $database->create(User::class, ['name' => 'nekufa']);
 
@@ -147,7 +147,7 @@ class DatabaseTest extends TestCase
         $this->assertInstanceOf(User::class, $database->find('test_user')[0]);
 
         $schema = new Schema();
-        $database = new Database($schema, $driver);
+        $database = new Database($driver, $schema);
         // schema based names
         $this->assertCount(3, $database->find('test.user'));
         // prefixed table names

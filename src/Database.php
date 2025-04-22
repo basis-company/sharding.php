@@ -15,16 +15,18 @@ use Ramsey\Uuid\Uuid;
 class Database implements DatabaseInterface
 {
     public readonly Locator $locator;
+    public readonly Schema $schema;
     private array $drivers = [];
 
     public function __construct(
-        public readonly Schema $schema,
         public readonly Driver $driver,
+        ?Schema $schema = null,
     ) {
+        $this->schema = $schema ?? new Schema();
         $this->locator = new Locator($this);
 
-        if (!$driver->hasTable($schema->getClassTable(Bucket::class))) {
-            $segments = array_map($schema->getSegmentByName(...), array_keys(Bucket::KEYS));
+        if (!$driver->hasTable($this->schema->getClassTable(Bucket::class))) {
+            $segments = array_map($this->schema->getSegmentByName(...), array_keys(Bucket::KEYS));
             array_walk($segments, fn ($segment) => $driver->syncSchema($segment, $this));
         }
     }
