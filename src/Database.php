@@ -10,6 +10,7 @@ use Basis\Sharded\Entity\Storage;
 use Basis\Sharded\Interface\Database as DatabaseInterface;
 use Basis\Sharded\Interface\Driver;
 use Exception;
+use Ramsey\Uuid\Uuid;
 
 class Database implements DatabaseInterface
 {
@@ -38,7 +39,7 @@ class Database implements DatabaseInterface
                     $data['bucket'] = $buckets[0]->id;
                 }
                 if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
-                    $data['id'] = Sequence::getNext($this, $table);
+                    $data['id'] = $this->generateId($class);
                 }
                 return [$driver->create($table, $data)];
             });
@@ -102,7 +103,7 @@ class Database implements DatabaseInterface
                     $row = $driver->findOne($table, $query);
                     if (!$row) {
                         if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
-                            $extra['id'] = Sequence::getNext($this, $table);
+                            $extra['id'] = $this->generateId($class);
                         }
                         if (!Bucket::isDedicated($buckets[0])) {
                             $extra['bucket'] = $buckets[0]->id;
@@ -117,6 +118,17 @@ class Database implements DatabaseInterface
     public function findOrFail(string $class, array $query): ?object
     {
         return $this->findOne($class, $query) ?: throw new Exception('No ' . $class . ' found');
+    }
+
+    public function generateId(string $class): int|string
+    {
+        $model = $this->meta->getClassModel($class);
+
+        return match ($model->getProperties()[0]->type) {
+            'int' => Sequence::getNext($this, $model->table),
+            'string' => Uuid::uuid4()->toString(),
+            default => throw new Exception("Unsupported id type " . $model->table),
+        };
     }
 
     public function getStorageDriver(int $storageId): Driver

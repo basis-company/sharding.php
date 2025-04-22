@@ -8,22 +8,43 @@ use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Storage;
 use Basis\Sharded\Meta;
 use Basis\Sharded\Database;
+use Basis\Sharded\Entity\Sequence;
 use Basis\Sharded\Schema\Model;
+use Basis\Sharded\Test\Entity\Document;
 use Basis\Sharded\Test\Entity\MapperLogin;
 use Basis\Sharded\Test\Entity\User;
 use PHPUnit\Framework\TestCase;
 
 class DatabaseTest extends TestCase
 {
-    public function testClassCasting()
+    public function getDrivers(): array
     {
         $tarantool = new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"));
         $tarantool->mapper->dropUserSpaces();
+
         $runtime = new Runtime();
         $runtime::$data = [];
         $runtime::$models = [];
+        return [$tarantool, $runtime];
+    }
 
-        foreach ([$tarantool, $runtime] as $driver) {
+    public function testStrings()
+    {
+        foreach ($this->getDrivers() as $driver) {
+            $database = new Database(new Meta(), $driver);
+            $database->meta->register(Document::class);
+            $this->assertCount(1, $database->find(Storage::class));
+            $document = $database->create(Document::class, ['name' => 'test']);
+            $this->assertNotNull($document->id);
+            $document2 = $database->findOrCreate(Document::class, ['name' => 'test2']);
+            $this->assertNotNull($document2->id);
+            $this->assertCount(3, $database->find(Sequence::class));
+        }
+    }
+
+    public function testClassCasting()
+    {
+        foreach ($this->getDrivers() as $driver) {
             $database = new Database(new Meta(), $driver);
             $this->assertCount(1, $database->find(Storage::class));
             $database->meta->register(User::class);

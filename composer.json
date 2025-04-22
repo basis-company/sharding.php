@@ -6,7 +6,8 @@
     "license": "MIT",
     "require": {
         "php": ">=8.0",
-        "psr/cache": "^2.0"
+        "psr/cache": "^2.0",
+        "ramsey/uuid": "^4.7"
     },
     "require-dev": {
         "doctrine/dbal": "^4.2.3",
