@@ -27,6 +27,11 @@ class Tarantool implements Driver
         return $this->mapper->create($table, $data);
     }
 
+    public function delete(string $table, int $id): ?object
+    {
+        return $this->mapper->delete($table, ['id' => $id]);
+    }
+
     public function find(string $table, array $query = []): array
     {
         return $this->mapper->find($table, $query);

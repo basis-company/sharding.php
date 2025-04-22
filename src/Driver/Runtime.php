@@ -27,6 +27,19 @@ class Runtime implements Driver
         return (object) $sorted;
     }
 
+    public function delete(string $class, int $id): ?object
+    {
+        foreach (self::$data[$class] as $i => $row) {
+            if ($row['id'] == $id) {
+                unset(self::$data[$class][$i]);
+                self::$data[$class] = array_values(self::$data[$class]);
+                return (object) $row;
+            }
+        }
+
+        return null;
+    }
+
     public function getDefaultPropetryValue(string $type)
     {
         switch ($type) {
@@ -67,7 +80,7 @@ class Runtime implements Driver
     public function findOrCreate(string $class, array $query, array $data = []): object
     {
         if (!$this->findOne($class, $query)) {
-            $data = $this->create($class, $data);
+            $data = $this->create($class, array_merge($query, $data));
         }
         return (object) $data;
     }

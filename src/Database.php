@@ -58,6 +58,14 @@ class Database implements DatabaseInterface
         return (object) $row;
     }
 
+    public function delete(string $class, int $id): ?object
+    {
+        return $this->fetch($class)
+            ->first()
+            ->from(['id' => $id])
+            ->using(fn (Driver $driver, string $table) => [$driver->delete($table, $id)]);
+    }
+
     public function fetch(string $class): Fetch
     {
         return new Fetch($this, $class);

@@ -67,6 +67,11 @@ class DatabaseTest extends TestCase
         // create not found
         $database->findOrCreate(User::class, ['name' => 'nekufa3']);
         $this->assertCount(3, $database->find(User::class));
+
+        $user = $database->delete(User::class, 3);
+        $this->assertNotNull($user);
+        $this->assertSame($user->name, 'nekufa3');
+        $this->assertCount(2, $database->find(User::class));
     }
 
     public function testTarantool()
@@ -116,5 +121,10 @@ class DatabaseTest extends TestCase
 
         $database->update('test.user', 2, ['name' => 'nekufa23']);
         $this->assertSame($database->findOrFail('test.user', ['id' => 2])->name, 'nekufa23');
+
+        $user = $database->delete('test.user', 3);
+        $this->assertNotNull($user);
+        $this->assertSame($user->name, 'nekufa3');
+        $this->assertCount(2, $database->find('test.user'));
     }
 }
