@@ -35,20 +35,31 @@ class Fetch
 
     public function using(callable $callback): array|object|null
     {
-        $storageBuckets = [];
+        $dedicatedBuckets = [];
+        if (!$this->buckets) {
+            $this->buckets = $this->database->locate($this->class);
+        }
+
         foreach ($this->buckets as $bucket) {
             if (!$bucket->storage) {
                 continue;
             }
-            if (!array_key_exists($bucket->storage, $storageBuckets)) {
-                $storageBuckets[$bucket->storage] = [$bucket];
-            } else {
-                $storageBuckets[$bucket->storage][] = $bucket;
+            $isDedicated = Bucket::isDedicated($bucket) ? 1 : 0;
+
+            if (!array_key_exists($isDedicated, $dedicatedBuckets)) {
+                $dedicatedBuckets[$isDedicated] = [];
             }
+
+            if (!array_key_exists($bucket->storage, $dedicatedBuckets[$isDedicated])) {
+                $dedicatedBuckets[$isDedicated][$bucket->storage] = [];
+            }
+
+            $dedicatedBuckets[$isDedicated][$bucket->storage][] = $bucket;
         }
 
         $result = [];
-        foreach ($storageBuckets as $storageId => $buckets) {
+
+        foreach ($dedicatedBuckets as $isDedicated => $storageBuckets) {
             $tableClass = null;
             if (!class_exists($this->class)) {
                 $table = str_replace('.', '_', $this->class);
@@ -58,19 +69,20 @@ class Fetch
             } else {
                 $table = $this->database->meta->getClassTable($this->class);
             }
-            if (Bucket::isDedicated($buckets[0])) {
+            if ($isDedicated) {
                 [$_, $table] = explode('_', $table, 2);
             }
-            $driver = $this->database->getStorageDriver($storageId);
-            $rows = $callback($driver, $table, $buckets);
-            foreach ($rows as $row) {
-                $result[] = $this->database->createInstance(
-                    class: $tableClass ?: $this->class,
-                    row: $row,
-                    isDedicated: Bucket::isDedicated($buckets[0]),
-                );
-                if ($this->first) {
-                    return array_pop($result);
+            foreach ($storageBuckets as $storageId => $buckets) {
+                $driver = $this->database->getStorageDriver($storageId);
+                foreach ($callback($driver, $table, $buckets) as $row) {
+                    $result[] = $this->database->createInstance(
+                        class: $tableClass ?: $this->class,
+                        row: $row,
+                        isDedicated: boolval($isDedicated)
+                    );
+                    if ($this->first) {
+                        return array_pop($result);
+                    }
                 }
             }
         }
