@@ -32,7 +32,7 @@ class Database implements DatabaseInterface
     public function create(string $class, array $data): object
     {
         return $this->fetchOne($class)
-            ->from($data, create: true)
+            ->from($data, create: true, single: true)
             ->using(function (Driver $driver, string $table, array $buckets) use ($class, $data) {
                 if (!Bucket::isDedicated($buckets[0])) {
                     $data['bucket'] = $buckets[0]->id;
@@ -96,7 +96,7 @@ class Database implements DatabaseInterface
     public function findOrCreate(string $class, array $query, array $data = []): object
     {
         return $this->fetchOne($class)
-            ->from($data, create: true)
+            ->from($data, create: true, single: true)
             ->using(function (Driver $driver, string $table, array $buckets) use ($class, $query, $data) {
                 if (array_key_exists('id', $data)) {
                     $row = $driver->findOrCreate($table, $query, $data);
