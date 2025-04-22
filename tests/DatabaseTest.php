@@ -15,6 +15,32 @@ use PHPUnit\Framework\TestCase;
 
 class DatabaseTest extends TestCase
 {
+    public function testClassCasting()
+    {
+        $tarantool = new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"));
+        $tarantool->mapper->dropUserSpaces();
+        $runtime = new Runtime();
+        $runtime::$data = [];
+        $runtime::$models = [];
+
+        foreach ([$tarantool, $runtime] as $driver) {
+            $database = new Database(new Meta(), $driver);
+            $this->assertCount(1, $database->find(Storage::class));
+            $database->meta->register(User::class);
+
+            $nekufa = $database->create(User::class, ['name' => 'Dmitry Krokhin']);
+            $this->assertCount(1, $database->find(User::class));
+            $nekufa = $database->update($nekufa, ['name' => 'Nekufa']);
+
+            $this->assertSame('Nekufa', $nekufa->name);
+            $this->assertSame('Nekufa', $database->find(User::class)[0]->name);
+
+            $user = $database->delete($nekufa);
+            $this->assertNotNull($user);
+            $this->assertSame($user->name, 'Nekufa');
+        }
+    }
+
     public function testMapperEntity()
     {
         $driver = new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"));
@@ -52,6 +78,9 @@ class DatabaseTest extends TestCase
     public function testRuntime()
     {
         Storage::$drivers = [];
+        Runtime::$data = [];
+        Runtime::$models = [];
+
         $database = new Database(new Meta(), new Runtime());
         $this->assertCount(1, $database->find(Storage::class));
         $database->meta->register(User::class);
@@ -65,7 +94,8 @@ class DatabaseTest extends TestCase
         $database->findOrCreate(User::class, ['name' => 'nekufa']);
         $this->assertCount(2, $database->find(User::class));
         // create not found
-        $database->findOrCreate(User::class, ['name' => 'nekufa3']);
+        $nekufa3 = $database->findOrCreate(User::class, ['name' => 'nekufa3']);
+        $this->assertSame($nekufa3->id, 3);
         $this->assertCount(3, $database->find(User::class));
 
         $user = $database->delete(User::class, 3);

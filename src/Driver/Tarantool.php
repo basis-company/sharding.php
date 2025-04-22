@@ -5,7 +5,6 @@ namespace Basis\Sharded\Driver;
 use Basis\Sharded\Database;
 use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Driver;
-use Basis\Sharded\Router;
 use Basis\Sharded\Schema\Segment;
 use Exception;
 use Tarantool\Client\Client;
@@ -27,7 +26,7 @@ class Tarantool implements Driver
         return $this->mapper->create($table, $data);
     }
 
-    public function delete(string $table, int $id): ?object
+    public function delete(string|object $table, ?int $id = null): ?object
     {
         return $this->mapper->delete($table, ['id' => $id]);
     }
@@ -125,7 +124,7 @@ class Tarantool implements Driver
         }
     }
 
-    public function update(string $table, int $id, array $data): ?object
+    public function update(string|object $table, int|array $id, ?array $data = null): ?object
     {
         $operations = null;
         foreach ($data as $k => $v) {
@@ -136,6 +135,7 @@ class Tarantool implements Driver
             }
         }
 
-        return (object) $this->mapper->client->getSpace($table)->update([$id], $operations);
+        $changes = $this->mapper->client->getSpace($table)->update([$id], $operations);
+        return count($changes) ? (object) $changes[0] : null;
     }
 }

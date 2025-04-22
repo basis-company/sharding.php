@@ -58,8 +58,12 @@ class Database implements DatabaseInterface
         return (object) $row;
     }
 
-    public function delete(string $class, int $id): ?object
+    public function delete(string|object $class, ?int $id = null): ?object
     {
+        if (is_object($class)) {
+            [$class, $id] = [get_class($class), $class->id];
+        }
+
         return $this->fetch($class)
             ->first()
             ->from(['id' => $id])
@@ -135,11 +139,14 @@ class Database implements DatabaseInterface
         return $this->locator->getBuckets($class, $data, $create, $single);
     }
 
-    public function update(string $class, int $id, array $data): ?object
+    public function update(string|object $class, int|array $id, ?array $data = null): ?object
     {
+        if (is_object($class)) {
+            [$class, $id, $data] = [get_class($class), $class->id, $id];
+        }
         return $this->fetch($class)
             ->first()
             ->from($data, single: true)
-            ->using(fn (Driver $driver, string $table) => $driver->update($table, $id, $data));
+            ->using(fn (Driver $driver, string $table) => [$driver->update($table, $id, $data)]);
     }
 }

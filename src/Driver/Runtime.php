@@ -27,7 +27,7 @@ class Runtime implements Driver
         return (object) $sorted;
     }
 
-    public function delete(string $class, int $id): ?object
+    public function delete(string|object $class, ?int $id = null): ?object
     {
         foreach (self::$data[$class] as $i => $row) {
             if ($row['id'] == $id) {
@@ -100,7 +100,7 @@ class Runtime implements Driver
         return '';
     }
 
-    public function update(string $class, int $id, array $data): ?object
+    public function update(string|object $class, int|array $id, ?array $data = null): ?object
     {
         foreach (self::$data[$class] as $i => $row) {
             if ($row['id'] == $id) {
