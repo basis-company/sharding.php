@@ -89,7 +89,7 @@ class Database implements DatabaseInterface
     public function findOne(string $class, array $query): ?object
     {
         return $this->fetchOne($class)
-            ->from($query, single: true)
+            ->from($query)
             ->using(fn(Driver $driver, string $table) => [$driver->findOne($table, $query)]);
     }
 
