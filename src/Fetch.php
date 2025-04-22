@@ -13,8 +13,14 @@ class Fetch
     public function __construct(
         public readonly Database $database,
         public readonly string $class,
-        public bool $one = false,
+        public bool $first = false,
     ) {
+    }
+
+    public function first(bool $first = true): self
+    {
+        $this->first = $first;
+        return $this;
     }
 
     public function from(array $buckets, $create = false, bool $single = false): self
@@ -63,9 +69,12 @@ class Fetch
                     row: $row,
                     isDedicated: Bucket::isDedicated($buckets[0]),
                 );
+                if ($this->first) {
+                    return array_pop($result);
+                }
             }
         }
 
-        return $this->one ? (count($result) ? $result[0] : null) : $result;
+        return $this->first ? null : $result;
     }
 }

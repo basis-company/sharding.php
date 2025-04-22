@@ -30,7 +30,8 @@ class Database implements DatabaseInterface
 
     public function create(string $class, array $data): object
     {
-        return $this->fetchOne($class)
+        return $this->fetch($class)
+            ->first()
             ->from($data, create: true)
             ->using(function (Driver $driver, string $table, array $buckets) use ($class, $data) {
                 if (!Bucket::isDedicated($buckets[0])) {
@@ -62,11 +63,6 @@ class Database implements DatabaseInterface
         return new Fetch($this, $class);
     }
 
-    public function fetchOne(string $class): Fetch
-    {
-        return new Fetch($this, $class, true);
-    }
-
     public function find(string $class, array $data = []): array
     {
         return $this->fetch($class)
@@ -76,14 +72,16 @@ class Database implements DatabaseInterface
 
     public function findOne(string $class, array $query): ?object
     {
-        return $this->fetchOne($class)
+        return $this->fetch($class)
+            ->first()
             ->from($query, single: true)
             ->using(fn(Driver $driver, string $table) => [$driver->findOne($table, $query)]);
     }
 
     public function findOrCreate(string $class, array $query, array $data = []): object
     {
-        return $this->fetchOne($class)
+        return $this->fetch($class)
+            ->first()
             ->from($data, create: true)
             ->using(function (Driver $driver, string $table, array $buckets) use ($class, $query, $data) {
                 if (array_key_exists('id', $data)) {
@@ -131,7 +129,8 @@ class Database implements DatabaseInterface
 
     public function update(string $class, int $id, array $data): ?object
     {
-        return $this->fetchOne($class)
+        return $this->fetch($class)
+            ->first()
             ->from($data, single: true)
             ->using(fn (Driver $driver, string $table) => $driver->update($table, $id, $data));
     }
