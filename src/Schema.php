@@ -13,7 +13,7 @@ use Basis\Sharded\Schema\Model;
 use Basis\Sharded\Schema\Segment;
 use Exception;
 
-class Meta
+class Schema
 {
     public array $classes = [];
     public array $segments = [];

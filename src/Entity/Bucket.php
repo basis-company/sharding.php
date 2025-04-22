@@ -34,21 +34,21 @@ class Bucket implements Bootstrap, Segment, Indexing
 
     public static function bootstrap(Database $database): void
     {
-        $database->driver->create($database->meta->getClassTable(self::class), [
+        $database->driver->create($database->schema->getClassTable(self::class), [
             'bucket' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
             'id' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
             'name' => Bucket::BUCKET_BUCKET_NAME,
             'storage' => 1,
         ]);
 
-        $database->driver->create($database->meta->getClassTable(self::class), [
+        $database->driver->create($database->schema->getClassTable(self::class), [
             'bucket' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
             'id' => Bucket::KEYS[Bucket::STORAGE_BUCKET_NAME],
             'name' => Bucket::STORAGE_BUCKET_NAME,
             'storage' => 1,
         ]);
 
-        $database->driver->create($database->meta->getClassTable(self::class), [
+        $database->driver->create($database->schema->getClassTable(self::class), [
             'bucket' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
             'id' => Bucket::KEYS[Bucket::SEQUENCE_BUCKET_NAME],
             'name' => Bucket::SEQUENCE_BUCKET_NAME,

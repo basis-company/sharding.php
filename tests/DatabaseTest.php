@@ -6,7 +6,7 @@ use Basis\Sharded\Driver\Runtime;
 use Basis\Sharded\Driver\Tarantool;
 use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Meta;
+use Basis\Sharded\Schema;
 use Basis\Sharded\Database;
 use Basis\Sharded\Entity\Sequence;
 use Basis\Sharded\Schema\Model;
@@ -31,8 +31,8 @@ class DatabaseTest extends TestCase
     public function testStrings()
     {
         foreach ($this->getDrivers() as $driver) {
-            $database = new Database(new Meta(), $driver);
-            $database->meta->register(Document::class);
+            $database = new Database(new Schema(), $driver);
+            $database->schema->register(Document::class);
             $this->assertCount(1, $database->find(Storage::class));
             $document = $database->create(Document::class, ['name' => 'test']);
             $this->assertNotNull($document->id);
@@ -45,9 +45,9 @@ class DatabaseTest extends TestCase
     public function testClassCasting()
     {
         foreach ($this->getDrivers() as $driver) {
-            $database = new Database(new Meta(), $driver);
+            $database = new Database(new Schema(), $driver);
             $this->assertCount(1, $database->find(Storage::class));
-            $database->meta->register(User::class);
+            $database->schema->register(User::class);
 
             $nekufa = $database->create(User::class, ['name' => 'Dmitry Krokhin']);
             $this->assertCount(1, $database->find(User::class));
@@ -72,9 +72,9 @@ class DatabaseTest extends TestCase
 
         $this->assertCount(1, $driver->mapper->find(MapperLogin::class));
 
-        $database = new Database(new Meta(), $driver);
-        $database->meta->register(MapperLogin::class);
-        $schema = $database->meta->getClassSegment(MapperLogin::class);
+        $database = new Database(new Schema(), $driver);
+        $database->schema->register(MapperLogin::class);
+        $schema = $database->schema->getClassSegment(MapperLogin::class);
         $this->assertCount(1, $schema->getModels());
         [$model] = $schema->getModels();
         $this->assertInstanceOf(Model::class, $model);
@@ -102,9 +102,9 @@ class DatabaseTest extends TestCase
         Runtime::$data = [];
         Runtime::$models = [];
 
-        $database = new Database(new Meta(), new Runtime());
+        $database = new Database(new Schema(), new Runtime());
         $this->assertCount(1, $database->find(Storage::class));
-        $database->meta->register(User::class);
+        $database->schema->register(User::class);
         // create first
         $database->create(User::class, ['name' => 'nekufa']);
         $this->assertCount(1, $database->find(User::class));
@@ -128,14 +128,14 @@ class DatabaseTest extends TestCase
     public function testTarantool()
     {
         Storage::$drivers = [];
-        $meta = new Meta();
-        $meta->register(User::class);
+        $schema = new Schema();
+        $schema->register(User::class);
 
         $driver = new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"));
         $driver->mapper->dropUserSpaces();
         $this->assertFalse($driver->mapper->hasSpace('test_user'));
 
-        $database = new Database($meta, $driver);
+        $database = new Database($schema, $driver);
         $this->assertCount(1, $database->find(Storage::class));
         $this->assertFalse($driver->mapper->hasSpace('test_user'));
         $database->create(User::class, ['name' => 'nekufa']);
@@ -160,8 +160,8 @@ class DatabaseTest extends TestCase
         $this->assertCount(3, $database->find('test_user'));
         $this->assertInstanceOf(User::class, $database->find('test_user')[0]);
 
-        $meta = new Meta();
-        $database = new Database($meta, $driver);
+        $schema = new Schema();
+        $database = new Database($schema, $driver);
         // schema based names
         $this->assertCount(3, $database->find('test.user'));
         // prefixed table names

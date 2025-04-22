@@ -63,11 +63,11 @@ class Fetch
             $tableClass = null;
             if (!class_exists($this->class)) {
                 $table = str_replace('.', '_', $this->class);
-                if ($this->database->meta->hasTable($table)) {
-                    $tableClass = $this->database->meta->getTableClass($table);
+                if ($this->database->schema->hasTable($table)) {
+                    $tableClass = $this->database->schema->getTableClass($table);
                 }
             } else {
-                $table = $this->database->meta->getClassTable($this->class);
+                $table = $this->database->schema->getClassTable($this->class);
             }
             if ($isDedicated) {
                 [$_, $table] = explode('_', $table, 2);

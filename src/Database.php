@@ -18,13 +18,13 @@ class Database implements DatabaseInterface
     private array $drivers = [];
 
     public function __construct(
-        public readonly Meta $meta,
+        public readonly Schema $schema,
         public readonly Driver $driver,
     ) {
         $this->locator = new Locator($this);
 
-        if (!$driver->hasTable($meta->getClassTable(Bucket::class))) {
-            $segments = array_map($meta->getSegmentByName(...), array_keys(Bucket::KEYS));
+        if (!$driver->hasTable($schema->getClassTable(Bucket::class))) {
+            $segments = array_map($schema->getSegmentByName(...), array_keys(Bucket::KEYS));
             array_walk($segments, fn ($segment) => $driver->syncSchema($segment, $this));
         }
     }
@@ -122,7 +122,7 @@ class Database implements DatabaseInterface
 
     public function generateId(string $class): int|string
     {
-        $model = $this->meta->getClassModel($class);
+        $model = $this->schema->getClassModel($class);
 
         return match ($model->getProperties()[0]->type) {
             'int' => Sequence::getNext($this, $model->table),

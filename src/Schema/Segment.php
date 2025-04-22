@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Basis\Sharded\Schema;
 
-use Basis\Sharded\Meta;
+use Basis\Sharded\Schema;
 use Exception;
 
 class Segment
@@ -57,7 +57,7 @@ class Segment
             throw new Exception("Class $class already registered");
         }
 
-        $this->classTable[$class] = Meta::toUnderscore(array_reverse(explode('\\', $class))[0]);
+        $this->classTable[$class] = Schema::toUnderscore(array_reverse(explode('\\', $class))[0]);
 
         return $this;
     }

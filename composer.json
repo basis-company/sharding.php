@@ -1,7 +1,7 @@
 {
     "name": "basis/sharded",
     "description": "Sharding framework",
-    "keywords": ["Basis", "sharding", "postgresql", "tarantool"],
+    "keywords": ["basis", "sharding", "postgresql", "tarantool"],
     "type": "library",
     "license": "MIT",
     "require": {
@@ -11,7 +11,7 @@
     },
     "require-dev": {
         "doctrine/dbal": "^4.2.3",
-        "phpunit/phpunit": "^9.5",
+        "phpunit/phpunit": "^12",
         "symfony/cache": "^7.2.5",
         "tarantool/client": ">=0.10.1",
         "tarantool/mapper": "^6.4.5"

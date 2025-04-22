@@ -26,15 +26,15 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
     {
         $database->create(self::class, [
             'id' => 1,
-            'name' => $database->meta->getClassTable(Sequence::class),
+            'name' => $database->schema->getClassTable(Sequence::class),
             'next' => 1,
         ]);
         $database->create(self::class, [
-            'name' => $database->meta->getClassTable(Bucket::class),
+            'name' => $database->schema->getClassTable(Bucket::class),
             'next' => 3,
         ]);
         $database->create(self::class, [
-            'name' => $database->meta->getClassTable(Storage::class),
+            'name' => $database->schema->getClassTable(Storage::class),
             'next' => 1,
         ]);
     }
@@ -71,12 +71,12 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
 
         if ($driver instanceof Tarantool) {
             $driver->getMapper()->update(
-                $database->meta->getClassTable(Sequence::class),
+                $database->schema->getClassTable(Sequence::class),
                 $sequence,
                 Operations::add('next', 1)
             );
         } elseif ($driver instanceof Runtime) {
-            $driver->update($database->meta->getClassTable(Sequence::class), $sequence->id, [
+            $driver->update($database->schema->getClassTable(Sequence::class), $sequence->id, [
                 'next' => ++$sequence->next
             ]);
         } else {

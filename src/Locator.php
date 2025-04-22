@@ -15,7 +15,7 @@ class Locator
     public function __construct(
         public readonly Database $database,
     ) {
-        $this->bucketsTable = $database->meta->getClassTable(Bucket::class);
+        $this->bucketsTable = $database->schema->getClassTable(Bucket::class);
     }
 
     public function castStorage(Bucket $bucket): void
@@ -35,7 +35,7 @@ class Locator
         $driver->update($this->bucketsTable, $bucket->id, ['storage' => $storage->id]);
 
         $bucket->storage = $storage->id;
-        $driver->syncSchema($this->database->meta->getSegmentByName($bucket->name), $this->database);
+        $driver->syncSchema($this->database->schema->getSegmentByName($bucket->name), $this->database);
     }
 
     public function getBuckets(string $class, array $data = [], bool $create = false, bool $single = false): array
@@ -55,7 +55,7 @@ class Locator
                 }
             }
         } else {
-            $domain = $this->database->meta->getClassSegment($class)->fullname;
+            $domain = $this->database->schema->getClassSegment($class)->fullname;
         }
 
         $buckets = $this->database->driver->find($this->bucketsTable, ['name' => $domain]);
