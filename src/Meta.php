@@ -9,6 +9,7 @@ use Basis\Sharded\Entity\Sequence;
 use Basis\Sharded\Entity\Storage;
 use Basis\Sharded\Interface\Domain as DomainInterface;
 use Basis\Sharded\Interface\Segment as SegmentInterface;
+use Basis\Sharded\Schema\Model;
 use Basis\Sharded\Schema\Segment;
 use Exception;
 
@@ -26,6 +27,11 @@ class Meta
         $this->register(Bucket::class);
         $this->register(Sequence::class);
         $this->register(Storage::class);
+    }
+
+    public function getClassModel(string $class): Model
+    {
+        return $this->getClassSegment($class)->getClassModel($class);
     }
 
     public function getClassSegment(string $class): Segment
@@ -48,9 +54,9 @@ class Meta
         return $this->tableClass[$table];
     }
 
-    public function getTableSegment(string $table): string
+    public function getTableSegment(string $table): Segment
     {
-        return $this->tableSegment[$table];
+        return $this->getSegmentByName($this->tableSegment[$table]);
     }
 
     public function hasTable(string $table): bool

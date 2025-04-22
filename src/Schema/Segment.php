@@ -9,14 +9,15 @@ use Exception;
 
 class Segment
 {
-    public readonly string $prefix;
+    public readonly string $fullname;
+    private array $models = [];
 
     public function __construct(
         public readonly string $domain,
         public readonly string $name,
         public array $classTable = [],
     ) {
-        $this->prefix = $name ? $domain . '_' . $name : $domain;
+        $this->fullname = $name ? $domain . '_' . $name : $domain;
     }
 
     public function getClasses(): array
@@ -24,9 +25,22 @@ class Segment
         return array_keys($this->classTable);
     }
 
+    public function getClassModel(string $class): Model
+    {
+        if (!array_key_exists($class, $this->classTable)) {
+            throw new Exception("Class $class not registered");
+        }
+
+        if (!array_key_exists($class, $this->models)) {
+            $this->models[$class] = new Model($class, $this->getTable($class));
+        }
+
+        return $this->models[$class];
+    }
+
     public function getModels(): array
     {
-        return array_map(fn ($class) => new Model($class, $this->getTable($class)), $this->getClasses());
+        return array_map($this->getClassModel(...), $this->getClasses());
     }
 
     public function getTable(string $class): string

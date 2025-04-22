@@ -19,9 +19,9 @@ class MetaTest extends TestCase
             Bucket::SEQUENCE_BUCKET_NAME,
             Bucket::STORAGE_BUCKET_NAME,
         ]);
-        $this->assertSame($meta->getTableSegment('sharded_bucket'), 'sharded_buckets');
-        $this->assertSame($meta->getTableSegment('sharded_sequence'), 'sharded_sequences');
-        $this->assertSame($meta->getTableSegment('sharded_storage'), 'sharded_storages');
+        $this->assertSame($meta->getTableSegment('sharded_bucket')->fullname, 'sharded_buckets');
+        $this->assertSame($meta->getTableSegment('sharded_sequence')->fullname, 'sharded_sequences');
+        $this->assertSame($meta->getTableSegment('sharded_storage')->fullname, 'sharded_storages');
     }
 
     public function testDuplicateClass()

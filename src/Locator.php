@@ -55,7 +55,7 @@ class Locator
                 }
             }
         } else {
-            $domain = $this->database->meta->getClassSegment($class)->prefix;
+            $domain = $this->database->meta->getClassSegment($class)->fullname;
         }
 
         $buckets = $this->database->driver->find($this->bucketsTable, ['name' => $domain]);
