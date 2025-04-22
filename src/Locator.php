@@ -50,24 +50,26 @@ class Locator
         if (!class_exists($class)) {
             foreach (['.', '_'] as $candidate) {
                 if (str_contains($class, $candidate)) {
-                    $domain = explode($candidate, $class, 2)[0];
+                    $bucketName = explode($candidate, $class, 2)[0];
                     break;
                 }
             }
         } else {
-            $domain = $this->database->schema->getClassSegment($class)->fullname;
+            $bucketName = $this->database->schema->getClassSegment($class)->fullname;
         }
 
-        $buckets = $this->database->driver->find($this->bucketsTable, ['name' => $domain]);
-        $buckets = array_map(fn ($data) => $this->database->createInstance(Bucket::class, $data), $buckets);
+        $buckets = $this->database->driver->find($this->bucketsTable, ['name' => $bucketName]);
 
         if ($single && count($buckets) > 1) {
             throw new Exception('Multiple buckets for ' . $class);
         }
 
+        $buckets = array_map(fn ($data) => $this->database->createInstance(Bucket::class, $data), $buckets);
+
         if (!count($buckets) && $create) {
-            $buckets = [$this->database->create(Bucket::class, ['name' => $domain])];
+            $buckets = [$this->database->create(Bucket::class, ['name' => $bucketName])];
         }
+
         if ($create) {
             array_walk($buckets, $this->castStorage(...));
         }
