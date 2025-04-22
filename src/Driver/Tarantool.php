@@ -123,6 +123,12 @@ class Tarantool implements Driver
             $class::bootstrap($database);
         }
     }
+    public function reset(): self
+    {
+        $this->mapper->dropUserSpaces();
+
+        return $this;
+    }
 
     public function update(string|object $table, int|array $id, ?array $data = null): ?object
     {

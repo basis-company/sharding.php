@@ -10,29 +10,29 @@ use Exception;
 
 class Runtime implements Driver
 {
-    public static array $data = [];
-    public static array $models = [];
+    public array $data = [];
+    public array $models = [];
 
     public function create(string $class, array $data): object
     {
         $sorted = ['bucket' => $data['bucket']];
-        foreach (self::$models[$class]->getProperties() as $property) {
+        foreach ($this->models[$class]->getProperties() as $property) {
             if (array_key_exists($property->name, $data)) {
                 $sorted[$property->name] = $data[$property->name];
             } else {
                 $sorted[$property->name] = $this->getDefaultPropetryValue($property->type);
             }
         }
-        self::$data[$class][] = $sorted;
+        $this->data[$class][] = $sorted;
         return (object) $sorted;
     }
 
     public function delete(string|object $class, ?int $id = null): ?object
     {
-        foreach (self::$data[$class] as $i => $row) {
+        foreach ($this->data[$class] as $i => $row) {
             if ($row['id'] == $id) {
-                unset(self::$data[$class][$i]);
-                self::$data[$class] = array_values(self::$data[$class]);
+                unset($this->data[$class][$i]);
+                $this->data[$class] = array_values($this->data[$class]);
                 return (object) $row;
             }
         }
@@ -54,18 +54,18 @@ class Runtime implements Driver
 
     public function find(string $class, array $query = []): array
     {
-        if (!array_key_exists($class, self::$data)) {
+        if (!array_key_exists($class, $this->data)) {
             throw new Exception("No $class");
         }
         if (count($query)) {
             $data = [];
-            foreach (self::$data[$class] as $row) {
+            foreach ($this->data[$class] as $row) {
                 if (!array_diff_assoc($query, $row)) {
                     $data[] = $row;
                 }
             }
         } else {
-            $data = self::$data[$class];
+            $data = $this->data[$class];
         }
 
         return $data;
@@ -100,12 +100,20 @@ class Runtime implements Driver
         return '';
     }
 
+    public function reset(): self
+    {
+        $this->data = [];
+        $this->models = [];
+
+        return $this;
+    }
+
     public function update(string|object $class, int|array $id, ?array $data = null): ?object
     {
-        foreach (self::$data[$class] as $i => $row) {
+        foreach ($this->data[$class] as $i => $row) {
             if ($row['id'] == $id) {
-                self::$data[$class][$i] = array_merge($row, $data);
-                return (object) self::$data[$class][$i];
+                $this->data[$class][$i] = array_merge($row, $data);
+                return (object) $this->data[$class][$i];
             }
         }
 
@@ -117,11 +125,11 @@ class Runtime implements Driver
         $bootstrappers = [];
 
         foreach ($segment->getModels() as $model) {
-            if (array_key_exists($model->table, self::$data)) {
+            if (array_key_exists($model->table, $this->data)) {
                 continue;
             }
-            self::$data[$model->table] = [];
-            self::$models[$model->table] = $model;
+            $this->data[$model->table] = [];
+            $this->models[$model->table] = $model;
             if (is_a($model->class, Bootstrap::class, true)) {
                 $bootstrappers[] = $model->class;
             }
@@ -134,6 +142,6 @@ class Runtime implements Driver
 
     public function hasTable(string $table): bool
     {
-        return array_key_exists($table, self::$data);
+        return array_key_exists($table, $this->data);
     }
 }

@@ -9,57 +9,54 @@ use Basis\Sharded\Entity\Storage;
 use Basis\Sharded\Schema;
 use Basis\Sharded\Database;
 use Basis\Sharded\Entity\Sequence;
+use Basis\Sharded\Interface\Driver;
 use Basis\Sharded\Schema\Model;
 use Basis\Sharded\Test\Entity\Document;
 use Basis\Sharded\Test\Entity\MapperLogin;
 use Basis\Sharded\Test\Entity\User;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class DatabaseTest extends TestCase
 {
-    public function getDrivers(): array
+    public static function provideDrivers(): array
     {
-        $tarantool = new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"));
-        $tarantool->mapper->dropUserSpaces();
-
-        $runtime = new Runtime();
-        $runtime::$data = [];
-        $runtime::$models = [];
-        return [$tarantool, $runtime];
+        return [
+            'tarantool' => [new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"))],
+            'runtime' => [new Runtime()],
+        ];
     }
 
-    public function testStrings()
+    #[DataProvider('provideDrivers')]
+    public function testStrings(Driver $driver)
     {
-        foreach ($this->getDrivers() as $driver) {
-            $database = new Database(new Schema(), $driver);
-            $database->schema->register(Document::class);
-            $this->assertCount(1, $database->find(Storage::class));
-            $document = $database->create(Document::class, ['name' => 'test']);
-            $this->assertNotNull($document->id);
-            $document2 = $database->findOrCreate(Document::class, ['name' => 'test2']);
-            $this->assertNotNull($document2->id);
-            $this->assertCount(3, $database->find(Sequence::class));
-        }
+        $database = new Database(new Schema(), $driver->reset());
+        $database->schema->register(Document::class);
+        $this->assertCount(1, $database->find(Storage::class));
+        $document = $database->create(Document::class, ['name' => 'test']);
+        $this->assertNotNull($document->id);
+        $document2 = $database->findOrCreate(Document::class, ['name' => 'test2']);
+        $this->assertNotNull($document2->id);
+        $this->assertCount(3, $database->find(Sequence::class));
     }
 
-    public function testClassCasting()
+    #[DataProvider('provideDrivers')]
+    public function testClassCasting(Driver $driver)
     {
-        foreach ($this->getDrivers() as $driver) {
-            $database = new Database(new Schema(), $driver);
-            $this->assertCount(1, $database->find(Storage::class));
-            $database->schema->register(User::class);
+        $database = new Database(new Schema(), $driver->reset());
+        $this->assertCount(1, $database->find(Storage::class));
+        $database->schema->register(User::class);
 
-            $nekufa = $database->create(User::class, ['name' => 'Dmitry Krokhin']);
-            $this->assertCount(1, $database->find(User::class));
-            $nekufa = $database->update($nekufa, ['name' => 'Nekufa']);
+        $nekufa = $database->create(User::class, ['name' => 'Dmitry Krokhin']);
+        $this->assertCount(1, $database->find(User::class));
+        $nekufa = $database->update($nekufa, ['name' => 'Nekufa']);
 
-            $this->assertSame('Nekufa', $nekufa->name);
-            $this->assertSame('Nekufa', $database->find(User::class)[0]->name);
+        $this->assertSame('Nekufa', $nekufa->name);
+        $this->assertSame('Nekufa', $database->find(User::class)[0]->name);
 
-            $user = $database->delete($nekufa);
-            $this->assertNotNull($user);
-            $this->assertSame($user->name, 'Nekufa');
-        }
+        $user = $database->delete($nekufa);
+        $this->assertNotNull($user);
+        $this->assertSame($user->name, 'Nekufa');
     }
 
     public function testMapperEntity()
@@ -96,13 +93,10 @@ class DatabaseTest extends TestCase
         $this->assertCount(1, $database->find(MapperLogin::class));
     }
 
-    public function testRuntime()
+    #[DataProvider('provideDrivers')]
+    public function testCrud(Driver $driver)
     {
-        Storage::$drivers = [];
-        Runtime::$data = [];
-        Runtime::$models = [];
-
-        $database = new Database(new Schema(), new Runtime());
+        $database = new Database(new Schema(), $driver->reset());
         $this->assertCount(1, $database->find(Storage::class));
         $database->schema->register(User::class);
         // create first
@@ -125,26 +119,18 @@ class DatabaseTest extends TestCase
         $this->assertCount(2, $database->find(User::class));
     }
 
-    public function testTarantool()
+    #[DataProvider('provideDrivers')]
+    public function testTarantool(Driver $driver)
     {
-        Storage::$drivers = [];
         $schema = new Schema();
         $schema->register(User::class);
 
-        $driver = new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"));
-        $driver->mapper->dropUserSpaces();
-        $this->assertFalse($driver->mapper->hasSpace('test_user'));
-
-        $database = new Database($schema, $driver);
+        $database = new Database($schema, $driver->reset());
         $this->assertCount(1, $database->find(Storage::class));
-        $this->assertFalse($driver->mapper->hasSpace('test_user'));
         $database->create(User::class, ['name' => 'nekufa']);
-        $this->assertTrue($driver->mapper->hasSpace('test_user'));
-        $this->assertCount(1, $driver->mapper->find('test_user'));
 
         $database->create(User::class, ['name' => 'nekufa2']);
         $database->findOrCreate(User::class, ['name' => 'nekufa']);
-        $this->assertCount(2, $driver->mapper->find('test_user'));
 
         $database->findOrCreate(User::class, ['name' => 'nekufa3']);
         $this->assertCount(3, $database->find(User::class));

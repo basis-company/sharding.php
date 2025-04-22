@@ -9,7 +9,6 @@ use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Domain;
 use Basis\Sharded\Interface\Driver;
 use Basis\Sharded\Interface\Segment;
-use Basis\Sharded\Router;
 
 class Storage implements Bootstrap, Domain, Segment
 {
@@ -17,11 +16,6 @@ class Storage implements Bootstrap, Domain, Segment
         'tarantool' => Tarantool::class,
         'runtime' => Runtime::class,
     ];
-
-    /**
-     * @var Driver[]
-     */
-    public static array $drivers = [];
 
     public static function bootstrap(Database $database): void
     {
@@ -49,12 +43,8 @@ class Storage implements Bootstrap, Domain, Segment
     ) {
     }
 
-    public function getDriver(): Driver
+    public function createDriver(): Driver
     {
-        if (!array_key_exists($this->id, self::$drivers)) {
-            self::$drivers[$this->id] = new self::$types[$this->type]($this->dsn);
-        }
-
-        return self::$drivers[$this->id];
+        return new self::$types[$this->type]($this->dsn);
     }
 }
