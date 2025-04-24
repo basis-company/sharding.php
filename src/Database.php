@@ -100,18 +100,18 @@ class Database implements DatabaseInterface
         return $this->fetchOne($class)
             ->from($data, create: true, single: true)
             ->using(function (Driver $driver, string $table, array $buckets) use ($class, $query, $data) {
-                if (array_key_exists('id', $data)) {
+                if (!Bucket::isDedicated($buckets[0])) {
+                    $data = array_merge(['bucket' => $buckets[0]->id], $data);
+                }
+                if (array_key_exists('id', $query)) {
                     $row = $driver->findOrCreate($table, $query, $data);
                 } else {
                     $row = $driver->findOne($table, $query);
                     if (!$row) {
                         if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
-                            $extra['id'] = $this->generateId($class);
+                            $data = array_merge(['id' => $this->generateId($class)], $data);
                         }
-                        if (!Bucket::isDedicated($buckets[0])) {
-                            $extra['bucket'] = $buckets[0]->id;
-                        }
-                        $row = $driver->findOrCreate($table, $query, array_merge($data, $extra));
+                        $row = $driver->findOrCreate($table, $query, array_merge($data));
                     }
                 }
                 return [$row];

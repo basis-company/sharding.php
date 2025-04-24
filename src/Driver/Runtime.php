@@ -84,10 +84,11 @@ class Runtime implements Driver
 
     public function findOrCreate(string $class, array $query, array $data = []): object
     {
-        if (!$this->findOne($class, $query)) {
-            $data = $this->create($class, array_merge($query, $data));
+        $instance = $this->findOne($class, $query);
+        if (!$instance) {
+            $instance = $this->create($class, array_merge($query, $data));
         }
-        return (object) $data;
+        return (object) $instance;
     }
 
     public function findOrFail(string $table, array $query): ?object
