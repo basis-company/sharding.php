@@ -99,7 +99,6 @@ class Tarantool implements Driver
             if (!count($space->getFields())) {
                 $space->addProperty('bucket', 'unsigned');
             }
-
             foreach ($model->getProperties() as $property) {
                 if (in_array($property->name, $space->getFields())) {
                     continue;
@@ -118,7 +117,6 @@ class Tarantool implements Driver
                 'name' => 'bucket',
                 'unique' => false,
             ]);
-
             if (!$present && is_a($model->class, Bootstrap::class, true)) {
                 $bootstrap[] = $model->class;
             }
@@ -128,10 +126,10 @@ class Tarantool implements Driver
             $class::bootstrap($database);
         }
     }
+
     public function reset(): self
     {
         $this->mapper->dropUserSpaces();
-
         return $this;
     }
 

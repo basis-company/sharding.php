@@ -100,7 +100,6 @@ class Runtime implements Driver
         return $row;
     }
 
-
     public function getDsn(): string
     {
         return '';
