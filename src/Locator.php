@@ -6,9 +6,10 @@ namespace Basis\Sharded;
 
 use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Storage;
+use Basis\Sharded\Interface\Locator as LocatorInterface;
 use Exception;
 
-class Locator
+class Locator implements LocatorInterface
 {
     public string $bucketsTable;
 
@@ -18,24 +19,18 @@ class Locator
         $this->bucketsTable = $database->schema->getClassTable(Bucket::class);
     }
 
-    public function castStorage(Bucket $bucket): void
+    public static function castStorage(Database $database, Bucket $bucket): Storage
     {
         if ($bucket->storage) {
-            return;
+            return $database->findOrFail(Storage::class, ['id' => $bucket->storage]);
         }
 
-        $storages = $this->database->find(Storage::class);
-        if (count($storages) !== 1) {
-            throw new Exception('No storage casting');
+        $storages = $database->find(Storage::class);
+        if (count($storages) === 1) {
+            return $storages[0];
         }
 
-        [$storage] = $storages;
-
-        $driver = $this->database->getStorageDriver($storage->id);
-        $driver->update($this->bucketsTable, $bucket->id, ['storage' => $storage->id]);
-
-        $bucket->storage = $storage->id;
-        $driver->syncSchema($this->database->schema->getSegmentByName($bucket->name), $this->database);
+        throw new Exception('No storage casting');
     }
 
     public function getBuckets(string $class, array $data = [], bool $create = false, bool $single = false): array
@@ -71,7 +66,24 @@ class Locator
         }
 
         if ($create) {
-            array_walk($buckets, $this->castStorage(...));
+            array_walk($buckets, function (Bucket $bucket) use ($class) {
+                if ($bucket->storage) {
+                    return;
+                }
+                if (is_a($class, LocatorInterface::class, true)) {
+                    $storage = $class::castStorage($this->database, $bucket);
+                } else {
+                    $storage = $this->castStorage($this->database, $bucket);
+                }
+
+                $bucket->storage = $storage->id;
+
+                $driver = $this->database->getStorageDriver($storage->id);
+                $driver->update($this->bucketsTable, $bucket->id, ['storage' => $storage->id]);
+
+                $segment = $this->database->schema->getSegmentByName($bucket->name);
+                $driver->syncSchema($segment, $this->database);
+            });
         }
 
         return $buckets;

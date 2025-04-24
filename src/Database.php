@@ -142,7 +142,7 @@ class Database implements DatabaseInterface
 
         if (!count($this->drivers)) {
             foreach ($this->find(Storage::class) as $storage) {
-                $this->drivers[$storage->id] = $storage->getDriver();
+                $this->drivers[$storage->id] = $storageId == 1 ? $this->driver : $storage->createDriver();
             }
         }
 
