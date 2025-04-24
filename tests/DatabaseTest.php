@@ -33,10 +33,14 @@ class DatabaseTest extends TestCase
         $database = new Database($driver->reset());
         $database->schema->register(Document::class);
         $this->assertCount(1, $database->find(Storage::class));
+
         $document = $database->create(Document::class, ['name' => 'test']);
         $this->assertNotNull($document->id);
+
         $document2 = $database->findOrCreate(Document::class, ['name' => 'test2']);
         $this->assertNotNull($document2->id);
+        $document2x = $database->findOrCreate(Document::class, ['name' => 'test2']);
+        $this->assertSame($document2->id, $document2x->id);
         $this->assertCount(3, $database->find(Sequence::class));
     }
 
