@@ -41,6 +41,10 @@ class Schema
 
     public function getSegmentByName(string $name): Segment
     {
+        if (!array_key_exists($name, $this->segments)) {
+            $parts = explode('_', $name, 2);
+            $this->segments[$name] = new Segment($parts[0], $parts[1] ?? '');
+        }
         return $this->segments[$name];
     }
 
@@ -83,20 +87,18 @@ class Schema
         }
         $domain = self::toUnderscore($domain);
 
-        $segment = '';
+        $postfix = '';
         if (is_a($class, SegmentInterface::class, true)) {
-            $segment = $class::getSegment();
+            $postfix = $class::getSegment();
         }
 
-        $key = self::toUnderscore($domain . ($segment ? '_' . $segment : ''));
-        if (!array_key_exists($key, $this->segments)) {
-            $this->segments[$key] = new Segment($domain, $segment);
-        }
+        $key = self::toUnderscore($domain . ($postfix ? '_' . $postfix : ''));
+        $segment = $this->getSegmentByName($key);
 
-        $this->segments[$key]->register($class);
+        $segment->register($class);
         $this->classSegment[$class] = $key;
 
-        $table = $this->segments[$key]->getTable($class);
+        $table = $segment->getTable($class);
         $this->tableSegment[$table] = $key;
         $this->tableClass[$table] = $class;
     }

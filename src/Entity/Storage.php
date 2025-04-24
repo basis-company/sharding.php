@@ -13,8 +13,8 @@ use Basis\Sharded\Interface\Segment;
 class Storage implements Bootstrap, Domain, Segment
 {
     public static $types = [
-        'tarantool' => Tarantool::class,
         'runtime' => Runtime::class,
+        'tarantool' => Tarantool::class,
     ];
 
     public static function bootstrap(Database $database): void
