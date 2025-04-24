@@ -35,31 +35,12 @@ class Fetch
 
     public function using(callable $callback): array|object|null
     {
-        $dedicatedBuckets = [];
         if (!$this->buckets) {
             $this->buckets = $this->database->locate($this->class);
         }
 
+        $rows = [];
         foreach ($this->buckets as $bucket) {
-            if (!$bucket->storage) {
-                continue;
-            }
-            $isDedicated = Bucket::isDedicated($bucket) ? 1 : 0;
-
-            if (!array_key_exists($isDedicated, $dedicatedBuckets)) {
-                $dedicatedBuckets[$isDedicated] = [];
-            }
-
-            if (!array_key_exists($bucket->storage, $dedicatedBuckets[$isDedicated])) {
-                $dedicatedBuckets[$isDedicated][$bucket->storage] = [];
-            }
-
-            $dedicatedBuckets[$isDedicated][$bucket->storage][] = $bucket;
-        }
-
-        $result = [];
-
-        foreach ($dedicatedBuckets as $isDedicated => $storageBuckets) {
             $tableClass = null;
             if (!class_exists($this->class)) {
                 $table = str_replace('.', '_', $this->class);
@@ -69,24 +50,21 @@ class Fetch
             } else {
                 $table = $this->database->schema->getClassTable($this->class);
             }
-            if ($isDedicated) {
+            if (Bucket::isDedicated($bucket)) {
                 [$_, $table] = explode('_', $table, 2);
             }
-            foreach ($storageBuckets as $storageId => $buckets) {
-                $driver = $this->database->getStorageDriver($storageId);
-                foreach ($callback($driver, $table, $buckets) as $row) {
-                    $result[] = $this->database->createInstance(
-                        class: $tableClass ?: $this->class,
-                        row: $row,
-                        isDedicated: boolval($isDedicated)
-                    );
-                    if ($this->first) {
-                        return array_pop($result);
-                    }
+            $driver = $this->database->getStorageDriver($bucket->storage);
+            foreach ($callback($driver, $table) as $row) {
+                $rows[] = $this->database->createInstance(
+                    class: $tableClass ?: $this->class,
+                    row: $row,
+                );
+                if ($this->first) {
+                    return array_pop($rows);
                 }
             }
         }
 
-        return $this->first ? null : $result;
+        return $this->first ? null : $rows;
     }
 }

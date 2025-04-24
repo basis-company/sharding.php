@@ -24,9 +24,10 @@ class Bucket implements Bootstrap, Segment, Indexing
 
     public function __construct(
         public int $id,
-        public int $parent,
         public string $name,
+        public int $version,
         public int $shard,
+        public int $replica,
         public int $storage,
         public int $flags,
     ) {
@@ -35,21 +36,18 @@ class Bucket implements Bootstrap, Segment, Indexing
     public static function bootstrap(Database $database): void
     {
         $database->driver->create($database->schema->getClassTable(self::class), [
-            'bucket' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
             'id' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
             'name' => Bucket::BUCKET_BUCKET_NAME,
             'storage' => 1,
         ]);
 
         $database->driver->create($database->schema->getClassTable(self::class), [
-            'bucket' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
             'id' => Bucket::KEYS[Bucket::STORAGE_BUCKET_NAME],
             'name' => Bucket::STORAGE_BUCKET_NAME,
             'storage' => 1,
         ]);
 
         $database->driver->create($database->schema->getClassTable(self::class), [
-            'bucket' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
             'id' => Bucket::KEYS[Bucket::SEQUENCE_BUCKET_NAME],
             'name' => Bucket::SEQUENCE_BUCKET_NAME,
             'storage' => 1,
@@ -64,7 +62,7 @@ class Bucket implements Bootstrap, Segment, Indexing
     public static function getIndexes(): array
     {
         return [
-            new UniqueIndex(['name', 'shard', 'parent']),
+            new UniqueIndex(['name', 'version', 'shard', 'replica']),
         ];
     }
 

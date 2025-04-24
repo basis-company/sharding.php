@@ -9,7 +9,6 @@ use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Domain;
 use Basis\Sharded\Interface\Indexing;
 use Basis\Sharded\Interface\Segment;
-use Basis\Sharded\Router;
 use Basis\Sharded\Schema\UniqueIndex;
 use Tarantool\Client\Schema\Operations;
 
@@ -61,7 +60,6 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
         $sequence = $database->findOrCreate(self::class, [
             'name' => $name
         ], [
-            'bucket' => Bucket::KEYS[Bucket::SEQUENCE_BUCKET_NAME],
             'name' => $name,
             'next' => 0,
         ]);

@@ -14,6 +14,9 @@ Sharded is a php library designed to handle domain data that is split into segme
 - Segment persistence is achieved through **buckets**
 - Buckets are distributed across multiple storage backends
 - Provides fault tolerance and scalability
+- We assume that **each storage node (or database instance) contains at most one logical bucket** (shard). This means:
+  - **No need to store a `bucket_id` (or shard key) in the data records**—since the storage location itself implies the bucket.
+  - **Sharding is storage-aware**: The system routes requests based on the physical/logical storage, not an attribute in the data.
 
 ## Features
 
@@ -28,15 +31,3 @@ Sharded is a php library designed to handle domain data that is split into segme
 ```bash
 composer require basis-company/sharded
 ```
-
-## Contributing
-
-Contributions are welcome! Please see our [Contribution Guidelines](https://github.com/basis-company/sharded.php/blob/master/CONTRIBUTING.md).
-
-## License
-
-Sharded.php is open-source software licensed under the [MIT License](https://github.com/basis-company/sharded.php/blob/master/LICENSE).
-
-## Support
-
-For support and questions, please open an issue on our [GitHub repository](https://github.com/basis-company/sharded.php/issues).

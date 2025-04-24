@@ -35,10 +35,7 @@ class Database implements DatabaseInterface
     {
         return $this->fetchOne($class)
             ->from($data, create: true, single: true)
-            ->using(function (Driver $driver, string $table, array $buckets) use ($class, $data) {
-                if (!Bucket::isDedicated($buckets[0])) {
-                    $data['bucket'] = $buckets[0]->id;
-                }
+            ->using(function (Driver $driver, string $table) use ($class, $data) {
                 if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
                     $data['id'] = $this->generateId($class);
                 }
@@ -46,13 +43,10 @@ class Database implements DatabaseInterface
             });
     }
 
-    public function createInstance(string $class, array|object $row, bool $isDedicated = false): object
+    public function createInstance(string $class, array|object $row): object
     {
         if (is_object($row)) {
             $row = get_object_vars($row);
-        }
-        if (!$isDedicated) {
-            array_shift($row);
         }
         if ($class && class_exists($class)) {
             return new $class(...array_values($row));
@@ -99,10 +93,7 @@ class Database implements DatabaseInterface
     {
         return $this->fetchOne($class)
             ->from($data, create: true, single: true)
-            ->using(function (Driver $driver, string $table, array $buckets) use ($class, $query, $data) {
-                if (!Bucket::isDedicated($buckets[0])) {
-                    $data = array_merge(['bucket' => $buckets[0]->id], $data);
-                }
+            ->using(function (Driver $driver, string $table) use ($class, $query, $data) {
                 if (array_key_exists('id', $query)) {
                     $row = $driver->findOrCreate($table, $query, $data);
                 } else {

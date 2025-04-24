@@ -15,7 +15,6 @@ class Runtime implements Driver
 
     public function create(string $class, array $data): object
     {
-        $sorted = ['bucket' => $data['bucket']];
         foreach ($this->models[$class]->getProperties() as $property) {
             if (array_key_exists($property->name, $data)) {
                 $sorted[$property->name] = $data[$property->name];

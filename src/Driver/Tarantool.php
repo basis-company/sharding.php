@@ -96,9 +96,6 @@ class Tarantool implements Driver
                     'if_not_exists' => true,
                 ]);
             }
-            if (!count($space->getFields())) {
-                $space->addProperty('bucket', 'unsigned');
-            }
             foreach ($model->getProperties() as $property) {
                 if (in_array($property->name, $space->getFields())) {
                     continue;
@@ -112,11 +109,6 @@ class Tarantool implements Driver
                     'unique' => $index->unique,
                 ]);
             }
-            $space->addIndex(['bucket'], [
-                'if_not_exists' => true,
-                'name' => 'bucket',
-                'unique' => false,
-            ]);
             if (!$present && is_a($model->class, Bootstrap::class, true)) {
                 $bootstrap[] = $model->class;
             }
