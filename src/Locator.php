@@ -30,7 +30,26 @@ class Locator implements LocatorInterface
             return $storages[0];
         }
 
-        throw new Exception('No storage casting');
+        $usedStorageKeys = [];
+        foreach ($database->find(Bucket::class) as $candidate) {
+            if ($candidate->name === $bucket->name) {
+                $usedStorageKeys[] = $candidate->storage;
+            }
+        }
+
+        $availableStorages = [];
+        foreach ($storages as $storage) {
+            if (!in_array($storage->id, $usedStorageKeys)) {
+                $availableStorages[] = $storage;
+            }
+        }
+
+        if (!count($availableStorages)) {
+            throw new Exception('No available storage');
+        }
+
+        $usages = array_map(fn($storage) => $database->getStorageDriver($storage->id)->getUsage(), $availableStorages);
+        return $availableStorages[array_search(min($usages), $usages)];
     }
 
     public function getBuckets(string $class, array $data = [], bool $create = false, bool $single = false): array

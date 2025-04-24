@@ -74,6 +74,11 @@ class Tarantool implements Driver
         };
     }
 
+    public function getUsage(): int
+    {
+        return $this->mapper->evaluate("return box.slab.info().items_size")[0];
+    }
+
     public function hasTable(string $table): bool
     {
         return $this->mapper->hasSpace($table);

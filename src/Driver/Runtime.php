@@ -52,6 +52,11 @@ class Runtime implements Driver
         }
     }
 
+    public function getUsage(): int
+    {
+        return strlen(json_encode($this->data));
+    }
+
     public function find(string $class, array $query = []): array
     {
         if (!array_key_exists($class, $this->data)) {
@@ -110,6 +115,9 @@ class Runtime implements Driver
 
     public function update(string|object $class, int|array $id, ?array $data = null): ?object
     {
+        if (!array_key_exists($class, $this->data)) {
+            return null;
+        }
         foreach ($this->data[$class] as $i => $row) {
             if ($row['id'] == $id) {
                 $this->data[$class][$i] = array_merge($row, $data);

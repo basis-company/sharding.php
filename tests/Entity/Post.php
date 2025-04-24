@@ -18,7 +18,7 @@ class Post implements Segment, Locator
 
     public static function castStorage(Database $database, Bucket $bucket): Storage
     {
-        return $database->findOrFail(Storage::class, ['id' => 1]);
+        return $database->findOne(Storage::class, []);
     }
 
     public static function getSegment(): string

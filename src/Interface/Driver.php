@@ -10,6 +10,7 @@ interface Driver extends DatabaseInterface
 {
     public function reset(): self;
     public function getDsn(): string;
+    public function getUsage(): int;
     public function syncSchema(Segment $segment, Database $database): void;
     public function hasTable(string $table): bool;
 }
