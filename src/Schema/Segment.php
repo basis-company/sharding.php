@@ -51,6 +51,17 @@ class Segment
         return $this->domain . '_' . $this->classTable[$class];
     }
 
+    public function isSharded(): bool
+    {
+        foreach ($this->models as $model) {
+            if ($model->isSharded()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function register(string $class): self
     {
         if (array_key_exists($class, $this->classTable)) {
@@ -58,6 +69,7 @@ class Segment
         }
 
         $this->classTable[$class] = Schema::toUnderscore(array_reverse(explode('\\', $class))[0]);
+        $this->models[$class] = new Model($class, $this->getTable($class));
 
         return $this;
     }

@@ -2,7 +2,9 @@
 
 namespace Basis\Sharded\Schema;
 
+use Basis\Sharded\Attribute\Sharding as ShardingAttribute;
 use Basis\Sharded\Interface\Indexing;
+use Basis\Sharded\Interface\Sharding as ShardingInterface;
 use ReflectionClass;
 use Tarantool\Mapper\Space;
 
@@ -18,6 +20,8 @@ class Model
      */
     private array $properties = [];
 
+    private bool $isSharded = false;
+
     public function __construct(
         public readonly string $class,
         public readonly string $table,
@@ -25,6 +29,12 @@ class Model
         $reflection = new ReflectionClass($class);
         foreach ($reflection->getConstructor()->getParameters() as $parameter) {
             $this->properties[] = new Property($parameter->getName(), $parameter->getType()->getName());
+        }
+
+        if (is_a($class, ShardingInterface::class, true)) {
+            $this->isSharded = true;
+        } elseif (count($reflection->getAttributes(ShardingAttribute::class))) {
+            $this->isSharded = true;
         }
 
         $this->indexes[] = new UniqueIndex([$this->properties[0]->name]);
@@ -58,5 +68,10 @@ class Model
     public function getProperties(): array
     {
         return $this->properties;
+    }
+
+    public function isSharded(): bool
+    {
+        return $this->isSharded;
     }
 }

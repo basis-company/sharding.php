@@ -6,10 +6,12 @@ namespace Basis\Sharded;
 
 use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Storage;
+use Basis\Sharded\Entity\Topology;
 use Basis\Sharded\Interface\Locator as LocatorInterface;
+use Basis\Sharded\Interface\Sharding as ShardingInterface;
 use Exception;
 
-class Locator implements LocatorInterface
+class Locator implements LocatorInterface, ShardingInterface
 {
     public string $bucketsTable;
 
@@ -73,15 +75,48 @@ class Locator implements LocatorInterface
         }
 
         $buckets = $this->database->driver->find($this->bucketsTable, ['name' => $bucketName]);
-
-        if ($single && count($buckets) > 1) {
-            throw new Exception('Multiple buckets for ' . $class);
-        }
-
         $buckets = array_map(fn ($data) => $this->database->createInstance(Bucket::class, $data), $buckets);
 
         if (!count($buckets) && $create) {
-            $buckets = [$this->database->create(Bucket::class, ['name' => $bucketName])];
+            $topology = new Topology(0, '', 0, 1, 0);
+            if ($this->database->schema->getClassModel($class)->isSharded()) {
+                $topologies = $this->database->find(Topology::class, [
+                    'name' => $bucketName
+                ]);
+                if (!count($topologies)) {
+                    $topologies = [
+                        $this->database->findOrCreate(
+                            Topology::class,
+                            [
+                                'name' => $bucketName,
+                                'version' => 1,
+                            ],
+                            [
+                                'name' => $bucketName,
+                                'version' => 1,
+                                'shards' => 1,
+                                'replicas' => 0,
+                            ]
+                        ),
+                    ];
+                }
+                $topology = array_pop($topologies);
+            }
+
+            foreach (range(0, $topology->shards - 1) as $shard) {
+                foreach (range(0, $topology->replicas) as $replica) {
+                    $buckets[] = $this->database->create(Bucket::class, [
+                        'name' => $bucketName,
+                        'version' => $topology->version,
+                        'shard' => $shard,
+                        'replica' => $replica,
+                    ]);
+                }
+            }
+        }
+
+        if ($single && count($buckets) > 1) {
+            throw new Exception('Multiple buckets for ' . $class);
         }
 
         if ($create) {
@@ -106,5 +141,10 @@ class Locator implements LocatorInterface
         }
 
         return $buckets;
+    }
+
+    public static function getKey(array $data): ?string
+    {
+        return $data['id'] ?? null;
     }
 }

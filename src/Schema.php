@@ -7,6 +7,7 @@ namespace Basis\Sharded;
 use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Sequence;
 use Basis\Sharded\Entity\Storage;
+use Basis\Sharded\Entity\Topology;
 use Basis\Sharded\Interface\Domain as DomainInterface;
 use Basis\Sharded\Interface\Segment as SegmentInterface;
 use Basis\Sharded\Schema\Model;
@@ -27,6 +28,7 @@ class Schema
         $this->register(Bucket::class);
         $this->register(Sequence::class);
         $this->register(Storage::class);
+        $this->register(Topology::class);
     }
 
     public function getClassModel(string $class): Model
