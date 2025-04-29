@@ -9,7 +9,7 @@ use Basis\Sharded\Entity\Storage;
 use Basis\Sharded\Entity\Topology;
 use Basis\Sharded\Interface\Locator as LocatorInterface;
 use Basis\Sharded\Interface\Sharding as ShardingInterface;
-use Basis\Sharded\Task\Configure;
+use Basis\Sharded\Job\Configure;
 use Exception;
 
 class Locator implements LocatorInterface, ShardingInterface

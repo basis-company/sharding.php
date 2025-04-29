@@ -1,13 +1,13 @@
 <?php
 
-namespace Basis\Sharded\Task;
+namespace Basis\Sharded\Job;
 
 use Basis\Sharded\Entity\Topology;
 use Basis\Sharded\Interface\Database;
-use Basis\Sharded\Interface\Task;
+use Basis\Sharded\Interface\Job;
 use Exception;
 
-class Configure implements Task
+class Configure implements Job
 {
     public function __construct(
         public readonly string $name,
@@ -43,8 +43,8 @@ class Configure implements Task
                     [
                         'name' => $this->name,
                         'version' => 1,
-                        'shards' => 1,
-                        'replicas' => 0,
+                        'shards' => $this->shards ?: 1,
+                        'replicas' => $this->replicas ?: 0,
                     ]
                 ),
             ];

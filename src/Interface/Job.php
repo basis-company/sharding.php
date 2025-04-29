@@ -2,7 +2,7 @@
 
 namespace Basis\Sharded\Interface;
 
-interface Task
+interface Job
 {
     public function __invoke(Database $database);
 }

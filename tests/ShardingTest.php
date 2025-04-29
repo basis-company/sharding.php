@@ -9,7 +9,7 @@ use Basis\Sharded\Driver\Runtime;
 use Basis\Sharded\Entity\Storage;
 use Basis\Sharded\Entity\Topology;
 use Basis\Sharded\Schema;
-use Basis\Sharded\Task\Configure;
+use Basis\Sharded\Job\Configure;
 use Basis\Sharded\Test\Entity\Activity;
 use Basis\Sharded\Test\Entity\Stage;
 use PHPUnit\Framework\TestCase;
@@ -47,5 +47,19 @@ class ShardingTest extends TestCase
         $this->assertSame($topology->shards, 2);
         $this->assertSame($topology->replicas, 1);
         $this->assertCount(4, $database->find(Topology::class));
+    }
+
+    public function testLocator()
+    {
+        $schema = new Schema();
+        $database = new Database(new Runtime(), $schema);
+        $database->create(Storage::class, ['type' => 'runtime']);
+        $database->create(Storage::class, ['type' => 'runtime']);
+        $database->create(Storage::class, ['type' => 'runtime']);
+        $this->assertCount(4, $database->find(Storage::class));
+
+        $schema->register(Stage::class);
+        $database->dispatch(new Configure('test', shards: 2));
+        $this->assertCount(1, $database->find(Topology::class));
     }
 }
