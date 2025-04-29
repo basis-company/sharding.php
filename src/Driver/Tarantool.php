@@ -26,9 +26,9 @@ class Tarantool implements Driver
         return $this->mapper->create($table, $data);
     }
 
-    public function delete(string|object $table, ?int $id = null): ?object
+    public function delete(string|object $table, array|int|null|string $id = null): ?object
     {
-        return $this->mapper->delete($table, ['id' => $id]);
+        return $this->mapper->delete($table, is_array($id) ? $id : ['id' => $id]);
     }
 
     public function find(string $table, array $query = []): array
@@ -125,7 +125,7 @@ class Tarantool implements Driver
         return $this;
     }
 
-    public function update(string|object $table, int|array $id, ?array $data = null): ?object
+    public function update(string|object $table, array|int|string $id, ?array $data = null): ?object
     {
         $operations = null;
         foreach ($data as $k => $v) {

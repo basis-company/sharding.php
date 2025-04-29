@@ -53,6 +53,9 @@ class Fetch
             if (Bucket::isDedicated($bucket)) {
                 [$_, $table] = explode('_', $table, 2);
             }
+            if (!$bucket->storage) {
+                continue;
+            }
             $driver = $this->database->getStorageDriver($bucket->storage);
             foreach ($callback($driver, $table) as $row) {
                 $rows[] = $this->database->createInstance(

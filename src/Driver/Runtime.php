@@ -26,7 +26,7 @@ class Runtime implements Driver
         return (object) $sorted;
     }
 
-    public function delete(string|object $class, ?int $id = null): ?object
+    public function delete(string|object $class, array|int|null|string $id = null): ?object
     {
         foreach ($this->data[$class] as $i => $row) {
             if ($row['id'] == $id) {
@@ -112,7 +112,7 @@ class Runtime implements Driver
         return $this;
     }
 
-    public function update(string|object $class, int|array $id, ?array $data = null): ?object
+    public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
     {
         if (!array_key_exists($class, $this->data)) {
             return null;

@@ -29,13 +29,10 @@ class Locator implements LocatorInterface, ShardingInterface
         }
 
         $storages = $database->find(Storage::class);
-        if (count($storages) === 1) {
-            return $storages[0];
-        }
 
         $usedStorageKeys = [];
         foreach ($database->find(Bucket::class) as $candidate) {
-            if ($candidate->name === $bucket->name) {
+            if ($candidate->storage && $candidate->name === $bucket->name) {
                 $usedStorageKeys[] = $candidate->storage;
             }
         }
@@ -78,27 +75,27 @@ class Locator implements LocatorInterface, ShardingInterface
         $buckets = $this->database->driver->find($this->bucketsTable, ['name' => $bucketName]);
         $buckets = array_map(fn ($data) => $this->database->createInstance(Bucket::class, $data), $buckets);
 
-        if (!count($buckets) && $create) {
-            $topology = new Topology(0, '', 0, 1, 0);
-            if ($this->database->schema->getClassModel($class)->isSharded()) {
-                $topologies = $this->database->find(Topology::class, [
-                    'name' => $bucketName
-                ]);
-                if (!count($topologies)) {
-                    $topologies = [$this->database->dispatch(new Configure($bucketName))];
-                }
-                $topology = array_pop($topologies);
-            }
+        $topology = $this->getTopology($class);
 
-            foreach (range(0, $topology->shards - 1) as $shard) {
-                foreach (range(0, $topology->replicas) as $replica) {
+        if (!count($buckets) && $create) {
+            foreach (range(0, $topology ? $topology->shards - 1 : 0) as $shard) {
+                foreach (range(0, $topology ? $topology->replicas : 0) as $replica) {
                     $buckets[] = $this->database->create(Bucket::class, [
                         'name' => $bucketName,
-                        'version' => $topology->version,
+                        'version' => $topology ? $topology->version : 0,
                         'shard' => $shard,
                         'replica' => $replica,
                     ]);
                 }
+            }
+        }
+
+        if (count($buckets) > 1 && $topology) {
+            $key = (is_a($class, ShardingInterface::class, true) ? $class : self::class)::getKey($data);
+            if ($key !== null) {
+                $key = (((string) (int) $key) === $key) ? (int) $key : throw new Exception("Strings");
+                $shard = $key % $topology->shards;
+                $buckets = array_filter($buckets, fn (Bucket $bucket) => $bucket->shard == $shard);
             }
         }
 
@@ -119,10 +116,11 @@ class Locator implements LocatorInterface, ShardingInterface
 
                 $bucket->storage = $storage->id;
 
-                $driver = $this->database->getStorageDriver($storage->id);
+                $driver = $this->database->getStorageDriver(1);
                 $driver->update($this->bucketsTable, $bucket->id, ['storage' => $storage->id]);
 
                 $segment = $this->database->schema->getSegmentByName($bucket->name);
+                $driver = $this->database->getStorageDriver($storage->id);
                 $driver->syncSchema($segment, $this->database);
             });
         }
@@ -133,5 +131,24 @@ class Locator implements LocatorInterface, ShardingInterface
     public static function getKey(array $data): ?string
     {
         return $data['id'] ?? null;
+    }
+
+    public function getTopology(string $class): ?Topology
+    {
+        if (!$this->database->schema->getClassModel($class)) {
+            return null;
+        }
+        if (!$this->database->schema->getClassModel($class)->isSharded()) {
+            return null;
+        }
+        $name = $this->database->schema->getClassSegment($class)->fullname;
+
+        $topologies = $this->database->find(Topology::class, ['name' => $name]);
+
+        if (!count($topologies)) {
+            $topologies = [$this->database->dispatch(new Configure($name))];
+        }
+
+        return array_pop($topologies);
     }
 }

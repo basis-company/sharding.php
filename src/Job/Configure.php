@@ -2,8 +2,8 @@
 
 namespace Basis\Sharded\Job;
 
+use Basis\Sharded\Database;
 use Basis\Sharded\Entity\Topology;
-use Basis\Sharded\Interface\Database;
 use Basis\Sharded\Interface\Job;
 use Exception;
 

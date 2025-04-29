@@ -31,13 +31,16 @@ class Schema
         $this->register(Topology::class);
     }
 
-    public function getClassModel(string $class): Model
+    public function getClassModel(string $class): ?Model
     {
-        return $this->getClassSegment($class)->getClassModel($class);
+        return $this->getClassSegment($class)?->getClassModel($class);
     }
 
-    public function getClassSegment(string $class): Segment
+    public function getClassSegment(string $class): ?Segment
     {
+        if (!array_key_exists($class, $this->classSegment)) {
+            return null;
+        }
         return $this->getSegmentByName($this->classSegment[$class]);
     }
 

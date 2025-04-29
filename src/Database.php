@@ -7,13 +7,13 @@ namespace Basis\Sharded;
 use Basis\Sharded\Entity\Bucket;
 use Basis\Sharded\Entity\Sequence;
 use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Interface\Database as DatabaseInterface;
+use Basis\Sharded\Interface\Crud;
 use Basis\Sharded\Interface\Driver;
 use Basis\Sharded\Interface\Job;
 use Exception;
 use Ramsey\Uuid\Uuid;
 
-class Database implements DatabaseInterface
+class Database implements Crud
 {
     public readonly Locator $locator;
     public readonly Schema $schema;
@@ -34,12 +34,13 @@ class Database implements DatabaseInterface
 
     public function create(string $class, array $data): object
     {
+        if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
+            $data['id'] = $this->generateId($class);
+        }
+
         return $this->fetchOne($class)
             ->from($data, create: true, single: true)
-            ->using(function (Driver $driver, string $table) use ($class, $data) {
-                if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
-                    $data['id'] = $this->generateId($class);
-                }
+            ->using(function (Driver $driver, string $table) use ($data) {
                 return [$driver->create($table, $data)];
             });
     }
@@ -55,7 +56,7 @@ class Database implements DatabaseInterface
         return (object) $row;
     }
 
-    public function delete(string|object $class, ?int $id = null): ?object
+    public function delete(string|object $class, array|int|null|string $id = null): ?object
     {
         if (is_object($class)) {
             [$class, $id] = [get_class($class), $class->id];
@@ -92,26 +93,26 @@ class Database implements DatabaseInterface
     {
         return $this->fetchOne($class)
             ->from($query)
-            ->using(fn(Driver $driver, string $table) => [$driver->findOne($table, $query)]);
+            ->using(function (Driver $driver, string $table) use ($query) {
+                return $driver->findOne($table, $query) ? [$driver->findOne($table, $query)] : [];
+            });
     }
 
     public function findOrCreate(string $class, array $query, array $data = []): object
     {
+        $instance = $this->findOne($class, $query);
+        if ($instance) {
+            return $instance;
+        }
+
+        if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
+            $data = array_merge(['id' => $this->generateId($class)], $data);
+        }
+
         return $this->fetchOne($class)
             ->from($data, create: true, single: true)
             ->using(function (Driver $driver, string $table) use ($class, $query, $data) {
-                if (array_key_exists('id', $query)) {
-                    $row = $driver->findOrCreate($table, $query, $data);
-                } else {
-                    $row = $driver->findOne($table, $query);
-                    if (!$row) {
-                        if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
-                            $data = array_merge(['id' => $this->generateId($class)], $data);
-                        }
-                        $row = $driver->findOrCreate($table, $query, array_merge($data));
-                    }
-                }
-                return [$row];
+                return [$driver->findOrCreate($table, $query, $data)];
             });
     }
 
@@ -151,13 +152,16 @@ class Database implements DatabaseInterface
         return $this->locator->getBuckets($class, $data, $create, $single);
     }
 
-    public function update(string|object $class, int|array $id, ?array $data = null): ?object
+    public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
     {
         if (is_object($class)) {
             [$class, $id, $data] = [get_class($class), $class->id, $id];
         }
         return $this->fetchOne($class)
-            ->from($data, single: true)
-            ->using(fn (Driver $driver, string $table) => [$driver->update($table, $id, $data)]);
+            ->from($data)
+            ->using(function (Driver $driver, string $table) use ($id, $data) {
+                $row = $driver->update($table, $id, $data);
+                return $row ? [$row] : [];
+            });
     }
 }

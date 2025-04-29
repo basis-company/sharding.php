@@ -3,10 +3,9 @@
 namespace Basis\Sharded\Interface;
 
 use Basis\Sharded\Database;
-use Basis\Sharded\Interface\Database as DatabaseInterface;
 use Basis\Sharded\Schema\Segment;
 
-interface Driver extends DatabaseInterface
+interface Driver extends Crud
 {
     public function reset(): self;
     public function getDsn(): string;

@@ -15,6 +15,6 @@ class Stage implements Sharding
 
     public static function getKey(array $data): ?string
     {
-        return $data['year'] ?? null;
+        return array_key_exists('year', $data) ? (string) $data['year'] : null;
     }
 }
