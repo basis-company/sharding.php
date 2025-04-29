@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Basis\Sharded\Schema;
+namespace Basis\Sharding\Schema;
 
-use Basis\Sharded\Schema;
+use Basis\Sharding\Schema;
 use Exception;
 
 class Segment

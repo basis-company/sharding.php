@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Basis\Sharded\Attribute;
+namespace Basis\Sharding\Attribute;
 
 use Attribute;
 

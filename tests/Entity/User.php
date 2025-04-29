@@ -1,9 +1,9 @@
 <?php
 
-namespace Basis\Sharded\Test\Entity;
+namespace Basis\Sharding\Test\Entity;
 
-use Basis\Sharded\Interface\Indexing;
-use Basis\Sharded\Schema\UniqueIndex;
+use Basis\Sharding\Interface\Indexing;
+use Basis\Sharding\Schema\UniqueIndex;
 
 class User implements Indexing
 {

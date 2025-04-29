@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Basis\Sharded;
+namespace Basis\Sharding;
 
-use Basis\Sharded\Entity\Bucket;
+use Basis\Sharding\Entity\Bucket;
 
 class Fetch
 {

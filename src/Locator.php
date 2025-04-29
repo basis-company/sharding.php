@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Basis\Sharded;
+namespace Basis\Sharding;
 
-use Basis\Sharded\Entity\Bucket;
-use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Entity\Topology;
-use Basis\Sharded\Interface\Locator as LocatorInterface;
-use Basis\Sharded\Interface\Sharding as ShardingInterface;
-use Basis\Sharded\Job\Configure;
+use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Storage;
+use Basis\Sharding\Entity\Topology;
+use Basis\Sharding\Interface\Locator as LocatorInterface;
+use Basis\Sharding\Interface\Sharding as ShardingInterface;
+use Basis\Sharding\Job\Configure;
 use Exception;
 
 class Locator implements LocatorInterface, ShardingInterface

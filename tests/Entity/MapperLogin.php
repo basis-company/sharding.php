@@ -1,6 +1,6 @@
 <?php
 
-namespace Basis\Sharded\Test\Entity;
+namespace Basis\Sharding\Test\Entity;
 
 use Tarantool\Mapper\Space;
 

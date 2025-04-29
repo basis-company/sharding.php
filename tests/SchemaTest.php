@@ -1,11 +1,11 @@
 <?php
 
-namespace Basis\Sharded\Test;
+namespace Basis\Sharding\Test;
 
-use Basis\Sharded\Entity\Bucket;
-use Basis\Sharded\Schema;
-use Basis\Sharded\Test\Entity\Post;
-use Basis\Sharded\Test\Entity\User;
+use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Schema;
+use Basis\Sharding\Test\Entity\Post;
+use Basis\Sharding\Test\Entity\User;
 use Exception;
 use PHPUnit\Framework\TestCase;
 
@@ -19,9 +19,9 @@ class SchemaTest extends TestCase
             Bucket::SEQUENCE_BUCKET_NAME,
             Bucket::STORAGE_BUCKET_NAME,
         ]);
-        $this->assertSame($schema->getTableSegment('sharded_bucket')->fullname, 'sharded_buckets');
-        $this->assertSame($schema->getTableSegment('sharded_sequence')->fullname, 'sharded_sequences');
-        $this->assertSame($schema->getTableSegment('sharded_storage')->fullname, 'sharded_storages');
+        $this->assertSame($schema->getTableSegment('sharding_bucket')->fullname, 'sharding_buckets');
+        $this->assertSame($schema->getTableSegment('sharding_sequence')->fullname, 'sharding_sequences');
+        $this->assertSame($schema->getTableSegment('sharding_storage')->fullname, 'sharding_storages');
     }
 
     public function testDuplicateClass()

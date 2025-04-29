@@ -1,19 +1,19 @@
 <?php
 
-namespace Basis\Sharded\Test;
+namespace Basis\Sharding\Test;
 
-use Basis\Sharded\Driver\Runtime;
-use Basis\Sharded\Driver\Tarantool;
-use Basis\Sharded\Entity\Bucket;
-use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Schema;
-use Basis\Sharded\Database;
-use Basis\Sharded\Entity\Sequence;
-use Basis\Sharded\Interface\Driver;
-use Basis\Sharded\Schema\Model;
-use Basis\Sharded\Test\Entity\Document;
-use Basis\Sharded\Test\Entity\MapperLogin;
-use Basis\Sharded\Test\Entity\User;
+use Basis\Sharding\Driver\Runtime;
+use Basis\Sharding\Driver\Tarantool;
+use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Storage;
+use Basis\Sharding\Schema;
+use Basis\Sharding\Database;
+use Basis\Sharding\Entity\Sequence;
+use Basis\Sharding\Interface\Driver;
+use Basis\Sharding\Schema\Model;
+use Basis\Sharding\Test\Entity\Document;
+use Basis\Sharding\Test\Entity\MapperLogin;
+use Basis\Sharding\Test\Entity\User;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

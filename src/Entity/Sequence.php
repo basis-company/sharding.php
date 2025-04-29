@@ -1,15 +1,15 @@
 <?php
 
-namespace Basis\Sharded\Entity;
+namespace Basis\Sharding\Entity;
 
-use Basis\Sharded\Database;
-use Basis\Sharded\Driver\Runtime;
-use Basis\Sharded\Driver\Tarantool;
-use Basis\Sharded\Interface\Bootstrap;
-use Basis\Sharded\Interface\Domain;
-use Basis\Sharded\Interface\Indexing;
-use Basis\Sharded\Interface\Segment;
-use Basis\Sharded\Schema\UniqueIndex;
+use Basis\Sharding\Database;
+use Basis\Sharding\Driver\Runtime;
+use Basis\Sharding\Driver\Tarantool;
+use Basis\Sharding\Interface\Bootstrap;
+use Basis\Sharding\Interface\Domain;
+use Basis\Sharding\Interface\Indexing;
+use Basis\Sharding\Interface\Segment;
+use Basis\Sharding\Schema\UniqueIndex;
 use Tarantool\Client\Schema\Operations;
 
 class Sequence implements Bootstrap, Domain, Segment, Indexing
@@ -40,7 +40,7 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
 
     public static function getDomain(): string
     {
-        return 'sharded';
+        return 'Sharding';
     }
 
     public static function getIndexes(): array

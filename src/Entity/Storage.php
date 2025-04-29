@@ -1,14 +1,14 @@
 <?php
 
-namespace Basis\Sharded\Entity;
+namespace Basis\Sharding\Entity;
 
-use Basis\Sharded\Database;
-use Basis\Sharded\Driver\Runtime;
-use Basis\Sharded\Driver\Tarantool;
-use Basis\Sharded\Interface\Bootstrap;
-use Basis\Sharded\Interface\Domain;
-use Basis\Sharded\Interface\Driver;
-use Basis\Sharded\Interface\Segment;
+use Basis\Sharding\Database;
+use Basis\Sharding\Driver\Runtime;
+use Basis\Sharding\Driver\Tarantool;
+use Basis\Sharding\Interface\Bootstrap;
+use Basis\Sharding\Interface\Domain;
+use Basis\Sharding\Interface\Driver;
+use Basis\Sharding\Interface\Segment;
 
 class Storage implements Bootstrap, Domain, Segment
 {
@@ -28,7 +28,7 @@ class Storage implements Bootstrap, Domain, Segment
 
     public static function getDomain(): string
     {
-        return 'sharded';
+        return 'Sharding';
     }
 
     public static function getSegment(): string

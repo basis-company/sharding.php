@@ -1,5 +1,5 @@
 {
-    "name": "basis/sharded",
+    "name": "basis-company/sharding",
     "description": "Sharding framework",
     "keywords": ["basis", "sharding", "postgresql", "tarantool"],
     "type": "library",
@@ -18,8 +18,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Basis\\Sharded\\": "src/",
-            "Basis\\Sharded\\Test\\": "tests/"
+            "Basis\\Sharding\\": "src/",
+            "Basis\\Sharding\\Test\\": "tests/"
         }
     },
     "authors": [

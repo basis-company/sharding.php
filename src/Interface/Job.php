@@ -1,8 +1,8 @@
 <?php
 
-namespace Basis\Sharded\Interface;
+namespace Basis\Sharding\Interface;
 
-use Basis\Sharded\Database;
+use Basis\Sharding\Database;
 
 interface Job
 {

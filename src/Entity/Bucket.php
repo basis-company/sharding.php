@@ -1,20 +1,20 @@
 <?php
 
-namespace Basis\Sharded\Entity;
+namespace Basis\Sharding\Entity;
 
-use Basis\Sharded\Interface\Bootstrap;
-use Basis\Sharded\Interface\Indexing;
-use Basis\Sharded\Interface\Segment;
-use Basis\Sharded\Database;
-use Basis\Sharded\Schema\UniqueIndex;
+use Basis\Sharding\Interface\Bootstrap;
+use Basis\Sharding\Interface\Indexing;
+use Basis\Sharding\Interface\Segment;
+use Basis\Sharding\Database;
+use Basis\Sharding\Schema\UniqueIndex;
 
 class Bucket implements Bootstrap, Segment, Indexing
 {
     public const DEDICATED_FLAG = 1;
 
-    public const BUCKET_BUCKET_NAME = 'sharded_buckets';
-    public const STORAGE_BUCKET_NAME = 'sharded_storages';
-    public const SEQUENCE_BUCKET_NAME = 'sharded_sequences';
+    public const BUCKET_BUCKET_NAME = 'sharding_buckets';
+    public const STORAGE_BUCKET_NAME = 'sharding_storages';
+    public const SEQUENCE_BUCKET_NAME = 'sharding_sequences';
 
     public const KEYS = [
         self::BUCKET_BUCKET_NAME => 1,
@@ -56,7 +56,7 @@ class Bucket implements Bootstrap, Segment, Indexing
 
     public static function getDomain(): string
     {
-        return 'sharded';
+        return 'Sharding';
     }
 
     public static function getIndexes(): array

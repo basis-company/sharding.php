@@ -1,10 +1,10 @@
 <?php
 
-namespace Basis\Sharded\Driver;
+namespace Basis\Sharding\Driver;
 
-use Basis\Sharded\Database;
-use Basis\Sharded\Interface\Bootstrap;
-use Basis\Sharded\Interface\Driver;
+use Basis\Sharding\Database;
+use Basis\Sharding\Interface\Bootstrap;
+use Basis\Sharding\Interface\Driver;
 use Exception;
 
 class Runtime implements Driver

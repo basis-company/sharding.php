@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Basis\Sharded;
+namespace Basis\Sharding;
 
-use Basis\Sharded\Entity\Bucket;
-use Basis\Sharded\Entity\Sequence;
-use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Entity\Topology;
-use Basis\Sharded\Interface\Domain as DomainInterface;
-use Basis\Sharded\Interface\Segment as SegmentInterface;
-use Basis\Sharded\Schema\Model;
-use Basis\Sharded\Schema\Segment;
+use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Sequence;
+use Basis\Sharding\Entity\Storage;
+use Basis\Sharding\Entity\Topology;
+use Basis\Sharding\Interface\Domain as DomainInterface;
+use Basis\Sharding\Interface\Segment as SegmentInterface;
+use Basis\Sharding\Schema\Model;
+use Basis\Sharding\Schema\Segment;
 use Exception;
 
 class Schema

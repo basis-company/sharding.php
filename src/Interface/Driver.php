@@ -1,9 +1,9 @@
 <?php
 
-namespace Basis\Sharded\Interface;
+namespace Basis\Sharding\Interface;
 
-use Basis\Sharded\Database;
-use Basis\Sharded\Schema\Segment;
+use Basis\Sharding\Database;
+use Basis\Sharding\Schema\Segment;
 
 interface Driver extends Crud
 {

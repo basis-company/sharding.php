@@ -1,17 +1,17 @@
 <?php
 
-namespace Basis\Sharded\Entity;
+namespace Basis\Sharding\Entity;
 
-use Basis\Sharded\Interface\Domain;
-use Basis\Sharded\Interface\Indexing;
-use Basis\Sharded\Interface\Segment;
-use Basis\Sharded\Schema\UniqueIndex;
+use Basis\Sharding\Interface\Domain;
+use Basis\Sharding\Interface\Indexing;
+use Basis\Sharding\Interface\Segment;
+use Basis\Sharding\Schema\UniqueIndex;
 
 class Topology implements Domain, Indexing, Segment
 {
     public static function getDomain(): string
     {
-        return 'sharded';
+        return 'Sharding';
     }
 
     public static function getSegment(): string

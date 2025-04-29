@@ -1,6 +1,6 @@
 <?php
 
-namespace Basis\Sharded\Schema;
+namespace Basis\Sharding\Schema;
 
 class UniqueIndex extends Index
 {

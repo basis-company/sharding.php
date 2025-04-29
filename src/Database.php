@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Basis\Sharded;
+namespace Basis\Sharding;
 
-use Basis\Sharded\Entity\Bucket;
-use Basis\Sharded\Entity\Sequence;
-use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Interface\Crud;
-use Basis\Sharded\Interface\Driver;
-use Basis\Sharded\Interface\Job;
+use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Sequence;
+use Basis\Sharding\Entity\Storage;
+use Basis\Sharding\Interface\Crud;
+use Basis\Sharding\Interface\Driver;
+use Basis\Sharding\Interface\Job;
 use Exception;
 use Ramsey\Uuid\Uuid;
 

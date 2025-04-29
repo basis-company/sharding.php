@@ -1,10 +1,10 @@
 <?php
 
-namespace Basis\Sharded\Interface;
+namespace Basis\Sharding\Interface;
 
-use Basis\Sharded\Database;
-use Basis\Sharded\Entity\Bucket;
-use Basis\Sharded\Entity\Storage;
+use Basis\Sharding\Database;
+use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Storage;
 
 interface Locator
 {

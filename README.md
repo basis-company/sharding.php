@@ -1,8 +1,8 @@
-# Sharded.php - A Sharded Library for PHP
+# Sharding.php - A Sharding Library for PHP
 
 ## Overview
 
-Sharded is a php library designed to handle domain data that is split into segments, where each segment represents a collection of entities. The library provides mechanisms for persisting these segments across distributed storage systems using a bucket-based approach.
+Sharding is a php library designed to handle domain data that is split into segments, where each segment represents a collection of entities. The library provides mechanisms for persisting these segments across distributed storage systems using a bucket-based approach.
 
 ## Key Concepts
 
@@ -29,5 +29,5 @@ Sharded is a php library designed to handle domain data that is split into segme
 ## Installation
 
 ```bash
-composer require basis-company/sharded
+composer require basis-company/Sharding
 ```

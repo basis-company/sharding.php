@@ -1,10 +1,10 @@
 <?php
 
-namespace Basis\Sharded\Schema;
+namespace Basis\Sharding\Schema;
 
-use Basis\Sharded\Attribute\Sharding as ShardingAttribute;
-use Basis\Sharded\Interface\Indexing;
-use Basis\Sharded\Interface\Sharding as ShardingInterface;
+use Basis\Sharding\Attribute\Sharding as ShardingAttribute;
+use Basis\Sharding\Interface\Indexing;
+use Basis\Sharding\Interface\Sharding as ShardingInterface;
 use ReflectionClass;
 use Tarantool\Mapper\Space;
 

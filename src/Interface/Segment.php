@@ -1,6 +1,6 @@
 <?php
 
-namespace Basis\Sharded\Interface;
+namespace Basis\Sharding\Interface;
 
 interface Segment
 {

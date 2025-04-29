@@ -1,9 +1,9 @@
 <?php
 
-namespace Basis\Sharded\Test\Entity;
+namespace Basis\Sharding\Test\Entity;
 
-use Basis\Sharded\Attribute\Sharding;
-use Basis\Sharded\Interface\Domain;
+use Basis\Sharding\Attribute\Sharding;
+use Basis\Sharding\Interface\Domain;
 
 #[Sharding]
 class Activity implements Domain

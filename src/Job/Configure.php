@@ -1,10 +1,10 @@
 <?php
 
-namespace Basis\Sharded\Job;
+namespace Basis\Sharding\Job;
 
-use Basis\Sharded\Database;
-use Basis\Sharded\Entity\Topology;
-use Basis\Sharded\Interface\Job;
+use Basis\Sharding\Database;
+use Basis\Sharding\Entity\Topology;
+use Basis\Sharding\Interface\Job;
 use Exception;
 
 class Configure implements Job

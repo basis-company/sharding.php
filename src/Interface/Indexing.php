@@ -1,8 +1,8 @@
 <?php
 
-namespace Basis\Sharded\Interface;
+namespace Basis\Sharding\Interface;
 
-use Basis\Sharded\Schema\Index;
+use Basis\Sharding\Schema\Index;
 
 interface Indexing
 {

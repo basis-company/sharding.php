@@ -1,13 +1,13 @@
 <?php
 
-namespace Basis\Sharded\Test;
+namespace Basis\Sharding\Test;
 
-use Basis\Sharded\Database;
-use Basis\Sharded\Driver\Runtime;
-use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Schema;
-use Basis\Sharded\Test\Entity\Post;
-use Basis\Sharded\Test\Entity\User;
+use Basis\Sharding\Database;
+use Basis\Sharding\Driver\Runtime;
+use Basis\Sharding\Entity\Storage;
+use Basis\Sharding\Schema;
+use Basis\Sharding\Test\Entity\Post;
+use Basis\Sharding\Test\Entity\User;
 use PHPUnit\Framework\TestCase;
 
 class CastingTest extends TestCase

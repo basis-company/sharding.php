@@ -1,8 +1,8 @@
 <?php
 
-namespace Basis\Sharded\Test\Entity;
+namespace Basis\Sharding\Test\Entity;
 
-use Basis\Sharded\Interface\Sharding;
+use Basis\Sharding\Interface\Sharding;
 
 class Stage implements Sharding
 {

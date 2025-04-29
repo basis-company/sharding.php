@@ -1,12 +1,12 @@
 <?php
 
-namespace Basis\Sharded\Test\Entity;
+namespace Basis\Sharding\Test\Entity;
 
-use Basis\Sharded\Database;
-use Basis\Sharded\Entity\Bucket;
-use Basis\Sharded\Entity\Storage;
-use Basis\Sharded\Interface\Locator;
-use Basis\Sharded\Interface\Segment;
+use Basis\Sharding\Database;
+use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Storage;
+use Basis\Sharding\Interface\Locator;
+use Basis\Sharding\Interface\Segment;
 
 class Post implements Segment, Locator
 {
