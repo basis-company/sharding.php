@@ -29,5 +29,5 @@ Sharding is a php library designed to handle domain data that is split into segm
 ## Installation
 
 ```bash
-composer require basis-company/Sharding
+composer require basis-company/sharding
 ```
