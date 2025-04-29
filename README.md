@@ -1,4 +1,4 @@
-# Sharding.php - A Sharding Library for PHP
+# A Sharding Library for PHP
 
 ## Overview
 
