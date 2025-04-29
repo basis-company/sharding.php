@@ -49,6 +49,34 @@ class ShardingTest extends TestCase
         $this->assertCount(4, $database->find(Topology::class));
     }
 
+    public function testUuidDistribution()
+    {
+        $schema = new Schema();
+        $database = new Database(new Runtime(), $schema);
+        $database->create(Storage::class, ['type' => 'runtime']);
+
+        $schema->register(Activity::class);
+        $database->dispatch(new Configure('telemetry', shards: 2));
+
+        $this->assertCount(1, $database->find(Topology::class));
+        $database->create(Activity::class, []);
+        $this->assertFalse($database->getStorageDriver(1)->hasTable('telemetry_activity'));
+        $this->assertTrue($database->getStorageDriver(2)->hasTable('telemetry_activity'));
+        $this->assertCount(1, $database->find(Activity::class));
+
+        $this->assertCount(1, array_filter($database->locate(Activity::class), fn ($bucket) => $bucket->storage));
+        foreach (range(1, 9) as $_) {
+            $database->create(Activity::class, []);
+        }
+        $this->assertCount(2, array_filter($database->locate(Activity::class), fn ($bucket) => $bucket->storage));
+        $this->assertCount(10, $database->find(Activity::class));
+
+        $this->assertTrue($database->getStorageDriver(1)->hasTable('telemetry_activity'));
+        $this->assertTrue($database->getStorageDriver(2)->hasTable('telemetry_activity'));
+        $this->assertNotCount(0, $database->getStorageDriver(1)->find('telemetry_activity'));
+        $this->assertNotCount(0, $database->getStorageDriver(2)->find('telemetry_activity'));
+    }
+
     public function testCustomDistribution()
     {
         $schema = new Schema();
