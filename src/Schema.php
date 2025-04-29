@@ -44,9 +44,12 @@ class Schema
         return $this->getSegmentByName($this->classSegment[$class]);
     }
 
-    public function getSegmentByName(string $name): Segment
+    public function getSegmentByName(string $name, bool $create = true): Segment
     {
         if (!$this->hasSegment($name)) {
+            if (!$create) {
+                throw new Exception("Segment $name not found");
+            }
             $parts = explode('_', $name, 2);
             $this->segments[$name] = new Segment($parts[0], $parts[1] ?? '');
         }

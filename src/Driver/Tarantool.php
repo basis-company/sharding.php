@@ -5,7 +5,6 @@ namespace Basis\Sharded\Driver;
 use Basis\Sharded\Database;
 use Basis\Sharded\Interface\Bootstrap;
 use Basis\Sharded\Interface\Driver;
-use Basis\Sharded\Schema\Segment;
 use Exception;
 use Tarantool\Client\Client;
 use Tarantool\Client\Schema\Operations;
@@ -84,10 +83,10 @@ class Tarantool implements Driver
         return $this->mapper->hasSpace($table);
     }
 
-    public function syncSchema(Segment $segment, Database $database): void
+    public function syncSchema(Database $database, string $segment): void
     {
         $bootstrap = [];
-        foreach ($segment->getModels() as $model) {
+        foreach ($database->schema->getSegmentByName($segment, create: false)->getModels() as $model) {
             $present = $this->mapper->hasSpace($model->table);
             if ($present) {
                 $space = $this->mapper->getSpace($model->table);
