@@ -9,6 +9,7 @@ use Basis\Sharded\Entity\Sequence;
 use Basis\Sharded\Entity\Storage;
 use Basis\Sharded\Interface\Database as DatabaseInterface;
 use Basis\Sharded\Interface\Driver;
+use Basis\Sharded\Interface\Task;
 use Exception;
 use Ramsey\Uuid\Uuid;
 
@@ -63,6 +64,11 @@ class Database implements DatabaseInterface
         return $this->fetchOne($class)
             ->from(['id' => $id])
             ->using(fn (Driver $driver, string $table) => [$driver->delete($table, $id)]);
+    }
+
+    public function dispatch(Task $task)
+    {
+        return $task($this);
     }
 
     public function fetch(string $class): Fetch

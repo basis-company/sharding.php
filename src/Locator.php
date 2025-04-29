@@ -9,6 +9,7 @@ use Basis\Sharded\Entity\Storage;
 use Basis\Sharded\Entity\Topology;
 use Basis\Sharded\Interface\Locator as LocatorInterface;
 use Basis\Sharded\Interface\Sharding as ShardingInterface;
+use Basis\Sharded\Task\Configure;
 use Exception;
 
 class Locator implements LocatorInterface, ShardingInterface
@@ -84,21 +85,7 @@ class Locator implements LocatorInterface, ShardingInterface
                     'name' => $bucketName
                 ]);
                 if (!count($topologies)) {
-                    $topologies = [
-                        $this->database->findOrCreate(
-                            Topology::class,
-                            [
-                                'name' => $bucketName,
-                                'version' => 1,
-                            ],
-                            [
-                                'name' => $bucketName,
-                                'version' => 1,
-                                'shards' => 1,
-                                'replicas' => 0,
-                            ]
-                        ),
-                    ];
+                    $topologies = [$this->database->dispatch(new Configure($bucketName))];
                 }
                 $topology = array_pop($topologies);
             }

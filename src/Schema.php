@@ -43,7 +43,7 @@ class Schema
 
     public function getSegmentByName(string $name): Segment
     {
-        if (!array_key_exists($name, $this->segments)) {
+        if (!$this->hasSegment($name)) {
             $parts = explode('_', $name, 2);
             $this->segments[$name] = new Segment($parts[0], $parts[1] ?? '');
         }
@@ -63,6 +63,11 @@ class Schema
     public function getTableSegment(string $table): Segment
     {
         return $this->getSegmentByName($this->tableSegment[$table]);
+    }
+
+    public function hasSegment(string $name): bool
+    {
+        return array_key_exists($name, $this->segments);
     }
 
     public function hasTable(string $table): bool
