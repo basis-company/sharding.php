@@ -92,14 +92,12 @@ class ShardingTest extends TestCase
         $database->create(Stage::class, ['year' => (int) date('Y'), 'month' => 2]);
         $database->create(Stage::class, ['year' => (int) date('Y'), 'month' => 3]);
 
-        $buckets = array_filter($database->locate(Stage::class, []), fn($bucket) => $bucket->storage);
-        $this->assertCount(1, $buckets);
+        $this->assertCount(1, array_filter($database->locate(Stage::class, []), fn($bucket) => $bucket->storage));
         $this->assertCount(3, $database->find(Stage::class, []));
 
         $last = $database->create(Stage::class, ['year' => (int) date('Y') - 1, 'month' => 12]);
 
-        $buckets = array_filter($database->locate(Stage::class, []), fn($bucket) => $bucket->storage);
-        $this->assertCount(2, $buckets);
+        $this->assertCount(2, array_filter($database->locate(Stage::class, []), fn($bucket) => $bucket->storage));
 
         $this->assertCount(1, $database->locate(Stage::class, ['year' => date('Y')]));
         $this->assertCount(3, $database->find(Stage::class, ['year' => date('Y')]));
