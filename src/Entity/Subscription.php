@@ -2,20 +2,17 @@
 
 namespace Basis\Sharding\Entity;
 
-class Change
+class Subscription
 {
     public function __construct(
         public int $id,
         public string $listener,
         public string $table,
-        public string $action,
-        public array $data,
-        public array $context,
     ) {
     }
 
     public static function getSpaceName(): string
     {
-        return "sharding_change";
+        return "sharding_subscription";
     }
 }
