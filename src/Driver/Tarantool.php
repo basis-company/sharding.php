@@ -104,7 +104,7 @@ class Tarantool implements Driver
             foreach ($model->getIndexes() as $index) {
                 $space->addIndex($index->fields, [
                     'if_not_exists' => true,
-                    'name' => $index->getName(),
+                    'name' => $index->name,
                     'unique' => $index->unique,
                 ]);
             }

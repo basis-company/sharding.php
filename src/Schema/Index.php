@@ -4,14 +4,12 @@ namespace Basis\Sharding\Schema;
 
 class Index
 {
+    public readonly string $name;
+
     public function __construct(
         public readonly array $fields,
         public readonly bool $unique = false,
     ) {
-    }
-
-    public function getName()
-    {
-        return implode("_", $this->fields) . ($this->unique ? "_unique" : "");
+        $this->name = implode("_", $fields) . ($unique ? "_unique" : "");
     }
 }
