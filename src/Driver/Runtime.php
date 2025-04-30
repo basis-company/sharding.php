@@ -4,14 +4,14 @@ namespace Basis\Sharding\Driver;
 
 use Basis\Sharding\Database;
 use Basis\Sharding\Entity\Change;
+use Basis\Sharding\Entity\Sequence;
 use Basis\Sharding\Entity\Subscription;
 use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Driver;
-use Basis\Sharding\Interface\Tracker;
 use Basis\Sharding\Schema\Model;
 use Exception;
 
-class Runtime implements Driver, Tracker
+class Runtime implements Driver
 {
     public array $data = [];
     public array $models = [];
@@ -209,7 +209,7 @@ class Runtime implements Driver, Tracker
         }
     }
 
-    public function ackChanges(string $listener, array $changes): void
+    public function ackChanges(array $changes): void
     {
         foreach ($changes as $change) {
             $this->delete(Change::getSpaceName(), $change->id);

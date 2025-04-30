@@ -2,7 +2,10 @@
 
 namespace Basis\Sharding\Entity;
 
-class Subscription
+use Basis\Sharding\Interface\Indexing;
+use Basis\Sharding\Schema\Index;
+
+class Subscription implements Indexing
 {
     public function __construct(
         public int $id,
@@ -14,5 +17,11 @@ class Subscription
     public static function getSpaceName(): string
     {
         return "sharding_subscription";
+    }
+    public static function getIndexes(): array
+    {
+        return [
+            new Index(["table"]),
+        ];
     }
 }

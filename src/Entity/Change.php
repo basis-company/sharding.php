@@ -2,7 +2,10 @@
 
 namespace Basis\Sharding\Entity;
 
-class Change
+use Basis\Sharding\Interface\Indexing;
+use Basis\Sharding\Schema\Index;
+
+class Change implements Indexing
 {
     public function __construct(
         public int $id,
@@ -17,5 +20,11 @@ class Change
     public static function getSpaceName(): string
     {
         return "sharding_change";
+    }
+    public static function getIndexes(): array
+    {
+        return [
+            new Index(["listener"]),
+        ];
     }
 }

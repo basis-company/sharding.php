@@ -4,7 +4,7 @@ namespace Basis\Sharding\Interface;
 
 use Basis\Sharding\Database;
 
-interface Driver extends Crud
+interface Driver extends Crud, Tracker
 {
     public function reset(): self;
     public function getDsn(): string;
