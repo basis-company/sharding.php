@@ -164,7 +164,7 @@ class Runtime implements Driver, Tracker
         $this->context = $context;
     }
 
-    public function track(string $table, string $listener): void
+    public function registerChanges(string $table, string $listener): void
     {
         if (!$this->hasTable(Subscription::getSpaceName())) {
             $model = new Model(Subscription::class, Subscription::getSpaceName());
@@ -182,22 +182,26 @@ class Runtime implements Driver, Tracker
     public function registerChange(string $table, string $action, array $data): void
     {
         if (array_key_exists(Subscription::getSpaceName(), $this->data)) {
+            $listeners = [];
             foreach ($this->data[Subscription::getSpaceName()] as $subscription) {
-                if ($subscription['table'] == $table) {
-                    if (!array_key_exists(Change::getSpaceName(), $this->data)) {
-                        $model = new Model(Change::class, Change::getSpaceName());
-                        $this->data[$model->table] = [];
-                        $this->models[$model->table] = $model;
-                    }
-                    $this->data[Change::getSpaceName()][] = [
-                        'id' => count($this->data[Change::getSpaceName()]) + 1,
-                        'listener' => $subscription['listener'],
-                        'table' => $table,
-                        'action' => $action,
-                        'data' => $data,
-                        'context' => $this->context,
-                    ];
+                if (in_array($subscription['table'], [$table, '*'])) {
+                    $listeners[$subscription['listener']] = true;
                 }
+            }
+            foreach (array_keys($listeners) as $listener) {
+                if (!array_key_exists(Change::getSpaceName(), $this->data)) {
+                    $model = new Model(Change::class, Change::getSpaceName());
+                    $this->data[$model->table] = [];
+                    $this->models[$model->table] = $model;
+                }
+                $this->data[Change::getSpaceName()][] = [
+                    'id' => count($this->data[Change::getSpaceName()]) + 1,
+                    'listener' => $listener,
+                    'table' => $table,
+                    'action' => $action,
+                    'data' => $data,
+                    'context' => $this->context,
+                ];
             }
         }
     }
@@ -209,12 +213,12 @@ class Runtime implements Driver, Tracker
         }
     }
 
-    public function getChanges(string $listener, int $limit = 100): array
+    public function getChanges(string $listener = '', int $limit = 100): array
     {
         $changes = [];
         if (array_key_exists(Change::getSpaceName(), $this->data)) {
             foreach ($this->data[Change::getSpaceName()] as $change) {
-                if ($change['listener'] == $listener) {
+                if (!$listener || $change['listener'] == $listener) {
                     $changes[] = new Change(...array_values($change));
                     if (count($changes) >= $limit) {
                         break;
