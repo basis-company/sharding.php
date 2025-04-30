@@ -5,9 +5,7 @@ namespace Basis\Sharding\Test;
 use Basis\Sharding\Database;
 use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Entity\Change;
-use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Interface\Driver;
-use Basis\Sharding\Interface\Tracker;
 use Basis\Sharding\Test\Entity\User;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -23,15 +21,11 @@ class DriverTest extends TestCase
     }
 
     #[DataProvider('provideDrivers')]
-    public function testChanges(Driver|Tracker $driver)
+    public function testChanges(Driver $driver)
     {
         $db = new Database($driver->reset());
         $db->schema->register(User::class);
-        $db->create(Storage::class, ['type' => 'runtime']);
         $nekufa = $db->create(User::class, ['name' => 'Dmitry Krokhin']);
-
-        $driver = $db->getStorageDriver(2);
-        assert($driver instanceof Tracker);
 
         $this->assertCount(1, $driver->find('test_user'));
         $this->assertCount(0, $driver->getChanges('notifier'));

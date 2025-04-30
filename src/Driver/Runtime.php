@@ -181,6 +181,9 @@ class Runtime implements Driver, Tracker
 
     public function registerChange(string $table, string $action, array $data): void
     {
+        if (strpos($table, 'sharding_') === 0) {
+            return;
+        }
         if (array_key_exists(Subscription::getSpaceName(), $this->data)) {
             $listeners = [];
             foreach ($this->data[Subscription::getSpaceName()] as $subscription) {
