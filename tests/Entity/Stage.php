@@ -13,8 +13,8 @@ class Stage implements Sharding
     ) {
     }
 
-    public static function getKey(array $data): ?string
+    public static function getKey(array $data): int|string|null
     {
-        return array_key_exists('year', $data) ? (string) $data['year'] : null;
+        return array_key_exists('year', $data) ? $data['year'] : null;
     }
 }

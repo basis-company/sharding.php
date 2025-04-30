@@ -12,6 +12,7 @@ use Basis\Sharding\Schema;
 use Basis\Sharding\Job\Configure;
 use Basis\Sharding\Test\Entity\Activity;
 use Basis\Sharding\Test\Entity\Stage;
+use Basis\Sharding\Test\Entity\User;
 use PHPUnit\Framework\TestCase;
 
 class ShardingTest extends TestCase
@@ -75,6 +76,24 @@ class ShardingTest extends TestCase
         $this->assertTrue($database->getStorageDriver(2)->hasTable('telemetry_activity'));
         $this->assertNotCount(0, $database->getStorageDriver(1)->find('telemetry_activity'));
         $this->assertNotCount(0, $database->getStorageDriver(2)->find('telemetry_activity'));
+    }
+
+    public function testIntegerKeyDistribution()
+    {
+        $schema = new Schema();
+        $database = new Database(new Runtime(), $schema);
+        $database->create(Storage::class, ['type' => 'runtime']);
+        $schema->register(User::class);
+
+        $database->dispatch(new Configure('test', shards: 2));
+
+        foreach (range(1, 10) as $n) {
+            $database->create(User::class, ['name' => 'user ' . $n]);
+        }
+
+        $this->assertCount(10, $database->find(User::class, []));
+        $this->assertCount(2, array_filter($database->locate(User::class, []), fn($bucket) => $bucket->storage));
+        $this->assertCount(5, $database->driver->find('test_user'));
     }
 
     public function testCustomDistribution()

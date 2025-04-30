@@ -94,7 +94,12 @@ class Locator implements LocatorInterface, ShardingInterface
         if (count($buckets) > 1 && $topology) {
             $key = (is_a($class, ShardingInterface::class, true) ? $class : self::class)::getKey($data);
             if ($key !== null) {
-                $key = (((string) (int) $key) === $key) ? (int) $key : abs(crc32($key));
+                if (((string) (int) $key) === $key) {
+                    $key = (int) $key;
+                }
+                if (!is_int($key)) {
+                    $key = abs(crc32(strval($key)));
+                }
                 $shard = $key % $topology->shards;
                 $buckets = array_filter($buckets, fn (Bucket $bucket) => $bucket->shard == $shard);
             }
@@ -127,7 +132,7 @@ class Locator implements LocatorInterface, ShardingInterface
         return $buckets;
     }
 
-    public static function getKey(array $data): ?string
+    public static function getKey(array $data): int|string|null
     {
         return $data['id'] ?? null;
     }
