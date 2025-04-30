@@ -3,7 +3,6 @@
 namespace Basis\Sharding\Interface;
 
 use Basis\Sharding\Database;
-use Basis\Sharding\Schema\Segment;
 
 interface Driver extends Crud
 {
