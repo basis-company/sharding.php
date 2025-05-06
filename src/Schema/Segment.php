@@ -51,6 +51,11 @@ class Segment
         return $this->domain . '_' . $this->classTable[$class];
     }
 
+    public function getTables(): array
+    {
+        return array_map($this->getTable(...), $this->getClasses());
+    }
+
     public function isSharded(): bool
     {
         foreach ($this->models as $model) {
