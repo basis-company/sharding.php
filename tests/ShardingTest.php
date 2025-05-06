@@ -7,10 +7,12 @@ namespace Basis\Sharding\Test;
 use Basis\Sharding\Database;
 use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Change;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Schema;
 use Basis\Sharding\Job\Configure;
+use Basis\Sharding\Job\Replicate;
 use Basis\Sharding\Test\Entity\Activity;
 use Basis\Sharding\Test\Entity\Stage;
 use Basis\Sharding\Test\Entity\User;
@@ -54,10 +56,35 @@ class ShardingTest extends TestCase
         array_map($database->delete(...), $database->find(Bucket::class, ['name' => $topology->name]));
         $this->assertCount(2, $database->getBuckets(Activity::class, []));
         $this->assertCount(1, $database->getBuckets(Activity::class, [], writable: true));
+        [$source] = $database->getBuckets(Activity::class, [], writable: true);
+        [$destination] = array_values(
+            array_filter($database->getBuckets(Activity::class, []), fn($bucket) => $bucket->id != $source->id)
+        );
 
-        $database->create(Activity::class, []);
-        $this->assertCount(0, $database->getStorageDriver(1)->find('telemetry_activity', []));
-        $this->assertCount(1, $database->getStorageDriver(2)->find('telemetry_activity', []));
+        $activity = $database->create(Activity::class, []);
+        $this->assertCount(1, $database->getStorageDriver($source->storage)->find('telemetry_activity', []));
+        $this->assertCount(0, $database->getStorageDriver($destination->storage)->find('telemetry_activity', []));
+
+        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+        $database->dispatch(new Replicate($source->storage, limit:1));
+        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+        $this->assertCount(1, $database->getStorageDriver($destination->storage)->find('telemetry_activity'));
+
+        $database->update($activity, ['type' => 27]);
+        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+
+        $database->dispatch(new Replicate($source->storage, limit:1));
+        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+        $this->assertCount(1, $database->getStorageDriver($destination->storage)->find('telemetry_activity'));
+        [$replicated] = $database->getStorageDriver($destination->storage)->find('telemetry_activity');
+        $this->assertSame($replicated['type'], 27);
+
+        $database->delete($activity);
+        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+
+        $database->dispatch(new Replicate($source->storage, limit:1));
+        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+        $this->assertCount(0, $database->getStorageDriver($destination->storage)->find('telemetry_activity'));
     }
 
     public function testUuidDistribution()
