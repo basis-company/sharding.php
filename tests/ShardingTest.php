@@ -51,10 +51,19 @@ class ShardingTest extends TestCase
         $this->assertSame($topology->shards, 1);
         $this->assertSame($topology->replicas, 1);
         $this->assertCount(4, $database->find(Topology::class));
+    }
 
+    public function testReplication()
+    {
+        $schema = new Schema();
+        $database = new Database(new Runtime(), $schema);
+
+        $schema->register(Activity::class);
+        $topology = $database->dispatch((new Configure('telemetry'))->replicas(1));
         $database->create(Storage::class, ['type' => 'runtime']);
+
         array_map($database->delete(...), $database->find(Bucket::class, ['name' => $topology->name]));
-        $this->assertCount(2, $database->getBuckets(Activity::class, []));
+        $this->assertCount(1, $database->getBuckets(Activity::class, []));
         $this->assertCount(1, $database->getBuckets(Activity::class, [], writable: true));
         [$source] = $database->getBuckets(Activity::class, [], writable: true);
         [$destination] = array_values(
@@ -64,6 +73,7 @@ class ShardingTest extends TestCase
         $activity = $database->create(Activity::class, []);
         $this->assertCount(1, $database->getStorageDriver($source->storage)->find('telemetry_activity', []));
         $this->assertCount(0, $database->getStorageDriver($destination->storage)->find('telemetry_activity', []));
+        $this->assertCount(0, $database->find(Activity::class));
 
         $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
         $database->dispatch(new Replicate($source->storage, limit:1));

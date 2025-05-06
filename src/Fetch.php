@@ -23,12 +23,12 @@ class Fetch
         return $this;
     }
 
-    public function from(array $buckets, $writable = false): self
+    public function from(array $buckets, bool $writable = false, bool $multiple = true): self
     {
         if (array_is_list($buckets) && count($buckets) && $buckets[0] instanceof Bucket) {
             $this->buckets = $buckets;
         } else {
-            $this->buckets = $this->database->getBuckets($this->class, $buckets, $writable);
+            $this->buckets = $this->database->getBuckets($this->class, $buckets, $writable, $multiple);
         }
         return $this;
     }

@@ -38,7 +38,7 @@ class Database implements Crud
         }
 
         return $this->fetchOne($class)
-            ->from($data, writable: true)
+            ->from($data, writable: true, multiple: false)
             ->using(function (Driver $driver, string $table) use ($data) {
                 return [$driver->create($table, $data)];
             });
@@ -62,7 +62,7 @@ class Database implements Crud
         }
 
         return $this->fetchOne($class)
-            ->from(['id' => $id])
+            ->from(['id' => $id], writable: true, multiple: true)
             ->using(function (Driver $driver, string $table) use ($id) {
                 $tuple = $driver->delete($table, $id);
                 return $tuple ? [$tuple] : [];
@@ -112,8 +112,8 @@ class Database implements Crud
         }
 
         return $this->fetchOne($class)
-            ->from($data, writable: true)
-            ->using(function (Driver $driver, string $table) use ($class, $query, $data) {
+            ->from($data, writable: true, multiple: false)
+            ->using(function (Driver $driver, string $table) use ($query, $data) {
                 return [$driver->findOrCreate($table, $query, $data)];
             });
     }
@@ -149,9 +149,9 @@ class Database implements Crud
         return $this->drivers[$storageId];
     }
 
-    public function getBuckets(string $class, array $data = [], bool $writable = false): array
+    public function getBuckets(string $class, array $data = [], bool $writable = false, bool $multiple = true): array
     {
-        return $this->locator->getBuckets($class, $data, $writable);
+        return $this->locator->getBuckets($class, $data, $writable, $multiple);
     }
 
     public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
@@ -160,7 +160,7 @@ class Database implements Crud
             [$class, $id, $data] = [get_class($class), $class->id, $id];
         }
         return $this->fetchOne($class)
-            ->from($data)
+            ->from(['id' => $id], writable: true, multiple: true)
             ->using(function (Driver $driver, string $table) use ($id, $data) {
                 $row = $driver->update($table, $id, $data);
                 return $row ? [$row] : [];
