@@ -3,6 +3,7 @@
 namespace Basis\Sharding\Job;
 
 use Basis\Sharding\Database;
+use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Interface\Job;
 use Exception;
@@ -45,6 +46,7 @@ class Configure implements Job
                         'version' => 1,
                         'shards' => $this->shards ?: 1,
                         'replicas' => $this->replicas ?: 0,
+                        'status' => Topology::READY_STATUS,
                     ]
                 ),
             ];
@@ -67,9 +69,19 @@ class Configure implements Job
         }
 
         if (count($updates)) {
+            if ($last->status !== Topology::READY_STATUS) {
+                throw new Exception("Topology is not ready");
+            }
+
+            $buckets = $database->find(Bucket::class, [
+                'name' => $last->name,
+                'version' => $last->version,
+            ]);
+
             $last = clone($last);
             $last->id = 0;
             $last->version++;
+            $last->status = count($buckets) ? Topology::DRAFT_STATUS : Topology::READY_STATUS;
 
             foreach ($updates as $key => $value) {
                 $last->$key = $value;
@@ -79,7 +91,7 @@ class Configure implements Job
                 Topology::class,
                 [
                     'name' => $last->name,
-                    'version' => $last->version
+                    'version' => $last->version,
                 ],
                 get_object_vars($last),
             );

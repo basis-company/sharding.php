@@ -9,6 +9,19 @@ use Basis\Sharding\Schema\UniqueIndex;
 
 class Topology implements Domain, Indexing, Segment
 {
+    public const DRAFT_STATUS = 'draft';
+    public const READY_STATUS = 'ready';
+
+    public function __construct(
+        public int $id,
+        public string $name,
+        public int $version,
+        public string $status,
+        public int $shards,
+        public int $replicas,
+    ) {
+    }
+
     public static function getDomain(): string
     {
         return 'Sharding';
@@ -17,15 +30,6 @@ class Topology implements Domain, Indexing, Segment
     public static function getSegment(): string
     {
         return 'buckets';
-    }
-
-    public function __construct(
-        public int $id,
-        public string $name,
-        public int $version,
-        public int $shards = 1,
-        public int $replicas = 1,
-    ) {
     }
 
     public static function getIndexes(): array
