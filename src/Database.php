@@ -146,7 +146,7 @@ class Database implements Crud
         return $this->drivers[$storageId];
     }
 
-    public function locate(string $class, array $data = [], bool $writable = false): array
+    public function getBuckets(string $class, array $data = [], bool $writable = false): array
     {
         return $this->locator->getBuckets($class, $data, $writable);
     }

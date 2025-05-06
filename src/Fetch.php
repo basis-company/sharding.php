@@ -28,7 +28,7 @@ class Fetch
         if (array_is_list($buckets) && count($buckets) && $buckets[0] instanceof Bucket) {
             $this->buckets = $buckets;
         } else {
-            $this->buckets = $this->database->locate($this->class, $buckets, $writable);
+            $this->buckets = $this->database->getBuckets($this->class, $buckets, $writable);
         }
         return $this;
     }
@@ -36,7 +36,7 @@ class Fetch
     public function using(callable $callback): array|object|null
     {
         if (!$this->buckets) {
-            $this->buckets = $this->database->locate($this->class);
+            $this->buckets = $this->database->getBuckets($this->class);
         }
 
         $rows = [];

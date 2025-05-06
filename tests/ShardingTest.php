@@ -52,8 +52,12 @@ class ShardingTest extends TestCase
 
         $database->create(Storage::class, ['type' => 'runtime']);
         array_map($database->delete(...), $database->find(Bucket::class, ['name' => $topology->name]));
-        $this->assertCount(2, $database->locate(Activity::class, []));
-        $this->assertCount(1, $database->locate(Activity::class, [], writable: true));
+        $this->assertCount(2, $database->getBuckets(Activity::class, []));
+        $this->assertCount(1, $database->getBuckets(Activity::class, [], writable: true));
+
+        $database->create(Activity::class, []);
+        $this->assertCount(0, $database->getStorageDriver(1)->find('telemetry_activity', []));
+        $this->assertCount(1, $database->getStorageDriver(2)->find('telemetry_activity', []));
     }
 
     public function testUuidDistribution()
@@ -71,11 +75,11 @@ class ShardingTest extends TestCase
         $this->assertTrue($database->getStorageDriver(2)->hasTable('telemetry_activity'));
         $this->assertCount(1, $database->find(Activity::class));
 
-        $this->assertCount(1, array_filter($database->locate(Activity::class), fn ($bucket) => $bucket->storage));
+        $this->assertCount(1, array_filter($database->getBuckets(Activity::class), fn ($bucket) => $bucket->storage));
         foreach (range(1, 9) as $_) {
             $database->create(Activity::class, []);
         }
-        $this->assertCount(2, array_filter($database->locate(Activity::class), fn ($bucket) => $bucket->storage));
+        $this->assertCount(2, array_filter($database->getBuckets(Activity::class), fn ($bucket) => $bucket->storage));
         $this->assertCount(10, $database->find(Activity::class));
 
         $this->assertTrue($database->getStorageDriver(1)->hasTable('telemetry_activity'));
@@ -98,7 +102,7 @@ class ShardingTest extends TestCase
         }
 
         $this->assertCount(10, $database->find(User::class, []));
-        $this->assertCount(2, array_filter($database->locate(User::class, []), fn($bucket) => $bucket->storage));
+        $this->assertCount(2, array_filter($database->getBuckets(User::class, []), fn($bucket) => $bucket->storage));
         $this->assertCount(5, $database->driver->find('test_user'));
     }
 
@@ -117,20 +121,20 @@ class ShardingTest extends TestCase
         $database->create(Stage::class, ['year' => (int) date('Y'), 'month' => 2]);
         $database->create(Stage::class, ['year' => (int) date('Y'), 'month' => 3]);
 
-        $this->assertCount(1, array_filter($database->locate(Stage::class, []), fn($bucket) => $bucket->storage));
+        $this->assertCount(1, array_filter($database->getBuckets(Stage::class, []), fn($bucket) => $bucket->storage));
         $this->assertCount(3, $database->find(Stage::class, []));
 
         $last = $database->create(Stage::class, ['year' => (int) date('Y') - 1, 'month' => 12]);
 
-        $this->assertCount(2, array_filter($database->locate(Stage::class, []), fn($bucket) => $bucket->storage));
+        $this->assertCount(2, array_filter($database->getBuckets(Stage::class, []), fn($bucket) => $bucket->storage));
 
-        $this->assertCount(1, $database->locate(Stage::class, ['year' => date('Y')]));
+        $this->assertCount(1, $database->getBuckets(Stage::class, ['year' => date('Y')]));
         $this->assertCount(3, $database->find(Stage::class, ['year' => date('Y')]));
 
-        $this->assertCount(1, $database->locate(Stage::class, ['year' => date('Y') - 1]));
+        $this->assertCount(1, $database->getBuckets(Stage::class, ['year' => date('Y') - 1]));
         $this->assertCount(1, $database->find(Stage::class, ['year' => date('Y') - 1]));
 
-        $this->assertCount(2, $database->locate(Stage::class, []));
+        $this->assertCount(2, $database->getBuckets(Stage::class, []));
         $this->assertCount(4, $database->find(Stage::class, []));
 
         $database->update($first, ['month' => 7]);
