@@ -6,6 +6,7 @@ namespace Basis\Sharding\Test;
 
 use Basis\Sharding\Database;
 use Basis\Sharding\Driver\Runtime;
+use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Schema;
@@ -26,7 +27,7 @@ class ShardingTest extends TestCase
         $segment = $schema->getClassSegment(Activity::class);
         $this->assertTrue($segment->isSharded());
 
-        [$bucket] = $database->locator->getBuckets(Activity::class, init: true);
+        [$bucket] = $database->locator->getBuckets(Activity::class, writable: true);
         $this->assertSame($bucket->version, 1);
         $this->assertCount(1, $database->find(Topology::class));
 
@@ -34,7 +35,7 @@ class ShardingTest extends TestCase
         $segment = $schema->getClassSegment(Stage::class);
         $this->assertTrue($segment->isSharded());
 
-        [$bucket] = $database->locator->getBuckets(Stage::class, init: true);
+        [$bucket] = $database->locator->getBuckets(Stage::class, writable: true);
         $this->assertSame($bucket->version, 1);
         $this->assertCount(2, $database->find(Topology::class));
 
@@ -43,11 +44,15 @@ class ShardingTest extends TestCase
         $this->assertSame($topology->shards, 2);
         $this->assertCount(3, $database->find(Topology::class));
 
-        $topology = $database->dispatch((new Configure('telemetry'))->replicas(1));
+        $topology = $database->dispatch((new Configure('telemetry'))->replicas(1)->shards(1));
         $this->assertSame($topology->version, 3);
-        $this->assertSame($topology->shards, 2);
+        $this->assertSame($topology->shards, 1);
         $this->assertSame($topology->replicas, 1);
         $this->assertCount(4, $database->find(Topology::class));
+
+        $database->create(Storage::class, ['type' => 'runtime']);
+        array_map($database->delete(...), $database->find(Bucket::class, ['name' => $topology->name]));
+        $this->assertCount(2, $database->locate(Activity::class, []));
     }
 
     public function testUuidDistribution()

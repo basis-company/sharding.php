@@ -13,6 +13,7 @@ class Activity implements Domain
         public int $type,
     ) {
     }
+
     public static function getDomain(): string
     {
         return 'telemetry';

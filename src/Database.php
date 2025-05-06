@@ -38,7 +38,7 @@ class Database implements Crud
         }
 
         return $this->fetchOne($class)
-            ->from($data, init: true, single: true)
+            ->from($data, writable: true)
             ->using(function (Driver $driver, string $table) use ($data) {
                 return [$driver->create($table, $data)];
             });
@@ -109,7 +109,7 @@ class Database implements Crud
         }
 
         return $this->fetchOne($class)
-            ->from($data, init: true, single: true)
+            ->from($data, writable: true)
             ->using(function (Driver $driver, string $table) use ($class, $query, $data) {
                 return [$driver->findOrCreate($table, $query, $data)];
             });
@@ -146,9 +146,9 @@ class Database implements Crud
         return $this->drivers[$storageId];
     }
 
-    public function locate(string $class, array $data = [], bool $init = false, bool $single = false): array
+    public function locate(string $class, array $data = [], bool $writable = false): array
     {
-        return $this->locator->getBuckets($class, $data, $init, $single);
+        return $this->locator->getBuckets($class, $data, $writable);
     }
 
     public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
