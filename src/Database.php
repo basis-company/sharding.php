@@ -63,7 +63,10 @@ class Database implements Crud
 
         return $this->fetchOne($class)
             ->from(['id' => $id])
-            ->using(fn (Driver $driver, string $table) => [$driver->delete($table, $id)]);
+            ->using(function (Driver $driver, string $table) use ($id) {
+                $tuple = $driver->delete($table, $id);
+                return $tuple ? [$tuple] : [];
+            });
     }
 
     public function dispatch(Job $job)
