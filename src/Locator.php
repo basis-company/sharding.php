@@ -109,25 +109,32 @@ class Locator implements LocatorInterface, ShardingInterface
             throw new Exception('Multiple buckets for ' . $class);
         }
 
-        if ($writable) {
-            array_walk($buckets, function (Bucket $bucket) use ($class) {
-                if ($bucket->storage) {
-                    return;
-                }
+        array_walk($buckets, function (Bucket $bucket) use ($class, $topology) {
+            if ($bucket->storage) {
+                return;
+            }
 
-                if (is_a($class, LocatorInterface::class, true)) {
-                    $storage = $class::castStorage($this->database, $bucket);
-                } else {
-                    $storage = $this->castStorage($this->database, $bucket);
-                }
+            if (is_a($class, LocatorInterface::class, true)) {
+                $storage = $class::castStorage($this->database, $bucket);
+            } else {
+                $storage = $this->castStorage($this->database, $bucket);
+            }
 
-                $bucket->storage = $storage->id;
-                $this->database->driver->update($this->bucketsTable, $bucket->id, ['storage' => $storage->id]);
+            $bucket->storage = $storage->id;
+            $this->database->driver->update($this->bucketsTable, $bucket->id, ['storage' => $storage->id]);
 
-                $driver = $this->database->getStorageDriver($storage->id);
-                $driver->syncSchema($this->database, $bucket->name);
-            });
-        }
+            $driver = $this->database->getStorageDriver($storage->id);
+            $driver->syncSchema($this->database, $bucket->name);
+            if ($topology && $bucket->replica == 0 && $topology->replicas) {
+                array_map(
+                    fn($table) => $driver->registerChanges($table, 'replication'),
+                    array_map(
+                        fn($class) => $this->database->schema->getClassTable($class),
+                        $this->database->schema->getSegmentByName($bucket->name)->getClasses(),
+                    ),
+                );
+            }
+        });
 
         return $buckets;
     }

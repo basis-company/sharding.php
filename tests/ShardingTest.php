@@ -75,7 +75,7 @@ class ShardingTest extends TestCase
         $this->assertTrue($database->getStorageDriver(2)->hasTable('telemetry_activity'));
         $this->assertCount(1, $database->find(Activity::class));
 
-        $this->assertCount(1, array_filter($database->getBuckets(Activity::class), fn ($bucket) => $bucket->storage));
+        $this->assertCount(2, array_filter($database->getBuckets(Activity::class), fn ($bucket) => $bucket->storage));
         foreach (range(1, 9) as $_) {
             $database->create(Activity::class, []);
         }
@@ -121,7 +121,7 @@ class ShardingTest extends TestCase
         $database->create(Stage::class, ['year' => (int) date('Y'), 'month' => 2]);
         $database->create(Stage::class, ['year' => (int) date('Y'), 'month' => 3]);
 
-        $this->assertCount(1, array_filter($database->getBuckets(Stage::class, []), fn($bucket) => $bucket->storage));
+        $this->assertCount(2, array_filter($database->getBuckets(Stage::class, []), fn($bucket) => $bucket->storage));
         $this->assertCount(3, $database->find(Stage::class, []));
 
         $last = $database->create(Stage::class, ['year' => (int) date('Y') - 1, 'month' => 12]);
