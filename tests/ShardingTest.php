@@ -53,6 +53,7 @@ class ShardingTest extends TestCase
         $database->create(Storage::class, ['type' => 'runtime']);
         array_map($database->delete(...), $database->find(Bucket::class, ['name' => $topology->name]));
         $this->assertCount(2, $database->locate(Activity::class, []));
+        $this->assertCount(1, $database->locate(Activity::class, [], writable: true));
     }
 
     public function testUuidDistribution()

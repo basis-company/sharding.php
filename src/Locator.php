@@ -83,11 +83,12 @@ class Locator implements LocatorInterface, ShardingInterface
                         'shard' => $shard,
                         'replica' => $replica,
                     ]);
-                    if (!$writable || ($writable && !$replica)) {
-                        $buckets[] = $bucket;
-                    }
+                    $buckets[] = $bucket;
                 }
             }
+        }
+        if ($writable) {
+            $buckets = array_filter($buckets, fn (Bucket $bucket) => $bucket->replica == 0);
         }
 
         if ($topology && count($buckets) > 1) {
