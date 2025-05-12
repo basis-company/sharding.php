@@ -11,6 +11,7 @@ class Topology implements Domain, Indexing, Segment
 {
     public const DRAFT_STATUS = 'draft';
     public const READY_STATUS = 'ready';
+    public const STALE_STATUS = 'stale';
 
     public function __construct(
         public int $id,

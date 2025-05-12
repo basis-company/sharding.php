@@ -45,6 +45,8 @@ class MigrationTest extends TestCase
         [$bucket] = $database->getBuckets(Activity::class);
         $this->assertSame($bucket->version, 1);
 
+        $this->assertSame(1, $database->locator->getTopology(Activity::class)->version);
+
         try {
             $database->dispatch(new Configure('telemetry', shards: 3));
             $this->assertNull("Draft reconfigured");
@@ -55,5 +57,13 @@ class MigrationTest extends TestCase
         $this->assertCount(2, $database->find(Topology::class));
 
         $database->dispatch(new Migrate('telemetry'));
+
+        $buckets = $database->getBuckets(Activity::class);
+        $this->assertSame(2, $database->locator->getTopology(Activity::class)->version);
+        $this->assertCount(2, $buckets);
+        $this->assertSame($buckets[0]->version, 2);
+        $this->assertSame($buckets[1]->version, 2);
+
+        $this->assertCount(10, $database->find(Activity::class));
     }
 }

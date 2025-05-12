@@ -76,15 +76,18 @@ class Migrate implements Job
             foreach ($rows as $row) {
                 $shard = $database->locator->getShard($nextTopology, $class, $row);
                 if (!array_key_exists($shard, $sharded[$class])) {
-                    $sharded[$class][$shard][] = $row;
+                    $sharded[$class][$shard] = [];
                 }
+                $sharded[$class][$shard][] = $row;
             }
         }
+
         foreach ($nextBuckets as $nextBucket) {
+            $driver = $database->getStorageDriver($nextBucket->storage);
             foreach ($sharded as $class => $shardedRows) {
-                // foreach ($shardedRows[$nextBucket->shard] as $rows)
-                // $driver = $database->getStorageDriver($nextBucket->storage);
-                // $driver->insert($segment->getTable($class), $rows[$nextBucket->shard]);
+                foreach ($shardedRows[$nextBucket->shard] as $row) {
+                    $driver->create($segment->getTable($class), $row);
+                }
             }
         }
 
@@ -92,7 +95,6 @@ class Migrate implements Job
             foreach ($segment->getTables() as $table) {
                 $changes = $database->getStorageDriver($currentBucket->storage)->getChanges('migration');
                 if (count($changes)) {
-                    // apply migration changes
                     throw new Exception("Migration changes not applied");
                 }
             }
@@ -100,6 +102,7 @@ class Migrate implements Job
 
 
         $database->update($nextTopology, ['status' => Topology::READY_STATUS]);
+        $database->update($currentTopology, ['status' => Topology::STALE_STATUS]);
         if ($nextTopology->replicas) {
             array_map(fn ($bucket) => $database->locator->assignStorage($bucket, $locator), $nextBuckets);
         }

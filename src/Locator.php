@@ -128,7 +128,7 @@ class Locator implements LocatorInterface, ShardingInterface
 
         array_walk($buckets, fn($bucket) => $this->assignStorage($bucket, $class, $topology));
 
-        return $buckets;
+        return array_values($buckets);
     }
 
     public function getTopology(string $class, string $status = Topology::READY_STATUS): ?Topology
