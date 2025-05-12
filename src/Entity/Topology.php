@@ -24,7 +24,7 @@ class Topology implements Domain, Indexing, Segment
 
     public static function getDomain(): string
     {
-        return 'Sharding';
+        return 'sharding';
     }
 
     public static function getSegment(): string

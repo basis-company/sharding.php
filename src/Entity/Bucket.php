@@ -56,7 +56,7 @@ class Bucket implements Bootstrap, Segment, Indexing
 
     public static function getDomain(): string
     {
-        return 'Sharding';
+        return 'sharding';
     }
 
     public static function getIndexes(): array

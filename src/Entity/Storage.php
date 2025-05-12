@@ -28,7 +28,7 @@ class Storage implements Bootstrap, Domain, Segment
 
     public static function getDomain(): string
     {
-        return 'Sharding';
+        return 'sharding';
     }
 
     public static function getSegment(): string

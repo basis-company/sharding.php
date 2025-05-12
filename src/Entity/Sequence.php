@@ -40,7 +40,7 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
 
     public static function getDomain(): string
     {
-        return 'Sharding';
+        return 'sharding';
     }
 
     public static function getIndexes(): array
