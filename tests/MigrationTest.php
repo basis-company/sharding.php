@@ -6,7 +6,6 @@ namespace Basis\Sharding\Test;
 
 use Basis\Sharding\Database;
 use Basis\Sharding\Driver\Runtime;
-use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Schema;
