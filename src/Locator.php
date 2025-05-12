@@ -150,7 +150,7 @@ class Locator implements LocatorInterface, ShardingInterface
         $topologies = array_filter($topologies, fn(Topology $topology) => $topology->status == $status);
 
         if (!count($topologies)) {
-            $topologies = [$this->database->dispatch(new Configure($name))];
+            $topologies = [$this->database->dispatch(new Configure($class))];
         }
 
         return array_pop($topologies);

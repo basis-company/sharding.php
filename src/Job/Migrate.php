@@ -13,14 +13,14 @@ use Exception;
 class Migrate implements Job
 {
     public function __construct(
-        public readonly string $name,
+        public readonly string $class,
     ) {
     }
 
     public function __invoke(Database $database)
     {
         $topologies = $database->find(Topology::class, [
-            'name' => $this->name,
+            'name' => $database->schema->getClassSegment($this->class)->fullname,
         ]);
 
         if (count($topologies) < 2) {

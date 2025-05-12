@@ -46,13 +46,13 @@ class ShardingTest extends TestCase
         $this->assertSame($bucket->version, 1);
         $this->assertCount(2, $database->find(Topology::class));
 
-        $topology = $database->dispatch((new Configure('telemetry'))->shards(2));
+        $topology = $database->dispatch((new Configure(Activity::class))->shards(2));
         $this->assertSame($topology->version, 2);
         $this->assertSame($topology->shards, 2);
         $this->assertSame($topology->status, Topology::READY_STATUS);
         $this->assertCount(3, $database->find(Topology::class));
 
-        $topology = $database->dispatch((new Configure('telemetry'))->replicas(1)->shards(1));
+        $topology = $database->dispatch((new Configure(Activity::class))->replicas(1)->shards(1));
         $this->assertSame($topology->version, 3);
         $this->assertSame($topology->shards, 1);
         $this->assertSame($topology->replicas, 1);
@@ -66,7 +66,7 @@ class ShardingTest extends TestCase
         $database = new Database(new Runtime(), $schema);
 
         $schema->register(Activity::class);
-        $topology = $database->dispatch((new Configure('telemetry'))->replicas(1));
+        $topology = $database->dispatch((new Configure(Activity::class))->replicas(1));
         $database->create(Storage::class, ['type' => 'runtime']);
 
         array_map($database->delete(...), $database->find(Bucket::class, ['name' => $topology->name]));
@@ -111,7 +111,7 @@ class ShardingTest extends TestCase
         $database->create(Storage::class, ['type' => 'runtime']);
 
         $schema->register(Activity::class);
-        $database->dispatch(new Configure('telemetry', shards: 2));
+        $database->dispatch(new Configure(Activity::class, shards: 2));
 
         $this->assertCount(1, $database->find(Topology::class));
         $database->create(Activity::class, []);
@@ -139,7 +139,7 @@ class ShardingTest extends TestCase
         $database->create(Storage::class, ['type' => 'runtime']);
         $schema->register(User::class);
 
-        $database->dispatch(new Configure('test', shards: 2));
+        $database->dispatch(new Configure(User::class, shards: 2));
 
         foreach (range(1, 10) as $n) {
             $database->create(User::class, ['name' => 'user ' . $n]);
@@ -155,9 +155,8 @@ class ShardingTest extends TestCase
         $schema = new Schema();
         $database = new Database(new Runtime(), $schema);
         $database->create(Storage::class, ['type' => 'runtime']);
-
         $schema->register(Stage::class);
-        $database->dispatch(new Configure('test', shards: 2));
+        $database->dispatch(new Configure(Stage::class, shards: 2));
 
         $this->assertCount(1, $database->find(Topology::class));
 

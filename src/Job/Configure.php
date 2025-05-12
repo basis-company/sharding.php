@@ -11,7 +11,7 @@ use Exception;
 class Configure implements Job
 {
     public function __construct(
-        public readonly string $name,
+        public readonly string $class,
         public readonly ?int $shards = null,
         public readonly ?int $replicas = null,
     ) {
@@ -19,30 +19,32 @@ class Configure implements Job
 
     public function shards(int $shards): self
     {
-        return new self($this->name, $shards, $this->replicas);
+        return new self($this->class, $shards, $this->replicas);
     }
 
     public function replicas(int $replicas): self
     {
-        return new self($this->name, $this->shards, $replicas);
+        return new self($this->class, $this->shards, $replicas);
     }
 
     public function __invoke(Database $database)
     {
-        $topologies = $database->find(Topology::class, ['name' => $this->name]);
-        if (!count($topologies) && $database->schema->hasSegment($this->name)) {
-            if (!$database->schema->getSegmentByName($this->name)->isSharded()) {
-                throw new Exception("Invalid topology name: $this->name");
+        $name = $database->schema->getClassSegment($this->class)->fullname;
+
+        $topologies = $database->find(Topology::class, ['name' => $name]);
+        if (!count($topologies) && $database->schema->hasSegment($name)) {
+            if (!$database->schema->getSegmentByName($name)->isSharded()) {
+                throw new Exception("Invalid topology name: $name");
             }
             $topologies = [
                 $database->findOrCreate(
                     Topology::class,
                     [
-                        'name' => $this->name,
+                        'name' => $name,
                         'version' => 1,
                     ],
                     [
-                        'name' => $this->name,
+                        'name' => $name,
                         'version' => 1,
                         'shards' => $this->shards ?: 1,
                         'replicas' => $this->replicas ?: 0,
@@ -53,7 +55,7 @@ class Configure implements Job
         }
 
         if (!count($topologies)) {
-            throw new Exception("Invalid topology name: $this->name");
+            throw new Exception("Invalid topology name: $name");
         }
 
         $last = array_pop($topologies);

@@ -36,7 +36,7 @@ class MigrationTest extends TestCase
         $this->assertCount(1, $database->find(Topology::class));
         $this->assertCount(1, $database->getBuckets(Activity::class));
 
-        $next = $database->dispatch(new Configure('telemetry', shards: 2));
+        $next = $database->dispatch(new Configure(Activity::class, shards: 2));
 
         $this->assertSame($next->status, Topology::DRAFT_STATUS);
         $this->assertCount(2, $database->find(Topology::class));
@@ -48,7 +48,7 @@ class MigrationTest extends TestCase
         $this->assertSame(1, $database->locator->getTopology(Activity::class)->version);
 
         try {
-            $database->dispatch(new Configure('telemetry', shards: 3));
+            $database->dispatch(new Configure(Activity::class, shards: 3));
             $this->assertNull("Draft reconfigured");
         } catch (Exception $e) {
             $this->assertSame($e->getMessage(), "Topology is not ready");
