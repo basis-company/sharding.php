@@ -82,6 +82,10 @@ class Migrate implements Job
             }
         }
 
+        if ($nextTopology->replicas) {
+            array_map(fn ($bucket) => $database->locator->assignStorage($bucket, $locator), $nextBuckets);
+        }
+
         foreach ($nextBuckets as $nextBucket) {
             $driver = $database->getStorageDriver($nextBucket->storage);
             foreach ($sharded as $class => $shardedRows) {
@@ -103,8 +107,5 @@ class Migrate implements Job
 
         $database->update($nextTopology, ['status' => Topology::READY_STATUS]);
         $database->update($currentTopology, ['status' => Topology::STALE_STATUS]);
-        if ($nextTopology->replicas) {
-            array_map(fn ($bucket) => $database->locator->assignStorage($bucket, $locator), $nextBuckets);
-        }
     }
 }

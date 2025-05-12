@@ -71,7 +71,7 @@ class Locator implements LocatorInterface, ShardingInterface
                 'name' => $bucket->name,
                 'version' => $bucket->version,
             ]);
-            if ($topology->replicas && $topology->status == Topology::READY_STATUS) {
+            if ($topology->replicas) {
                 array_map(
                     fn($table) => $driver->registerChanges($table, 'replication'),
                     $this->database->schema->getSegmentByName($bucket->name)->getTables(),
