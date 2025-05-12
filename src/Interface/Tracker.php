@@ -6,6 +6,7 @@ interface Tracker
 {
     public function ackChanges(array $changes): void;
     public function getChanges(string $listener = '', int $limit = 100): array;
+    public function getListeners(string $table): array;
     public function registerChanges(string $table, string $listener): void;
     public function setContext(array $context): void;
 }

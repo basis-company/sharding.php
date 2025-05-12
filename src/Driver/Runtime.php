@@ -178,6 +178,23 @@ class Runtime implements Driver
             'table' => $table,
         ];
     }
+    public function getListeners(string $table): array
+    {
+        if (strpos($table, 'sharding_') === 0) {
+            return [];
+        }
+
+        $listeners = [];
+        if (array_key_exists(Subscription::getSpaceName(), $this->data)) {
+            foreach ($this->data[Subscription::getSpaceName()] as $subscription) {
+                if (in_array($subscription['table'], [$table, '*'])) {
+                    $listeners[$subscription['listener']] = true;
+                }
+            }
+        }
+
+        return array_keys($listeners);
+    }
 
     public function registerChange(string $table, string $action, array $data): void
     {
