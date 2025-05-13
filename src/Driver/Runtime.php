@@ -4,11 +4,11 @@ namespace Basis\Sharding\Driver;
 
 use Basis\Sharding\Database;
 use Basis\Sharding\Entity\Change;
-use Basis\Sharding\Entity\Sequence;
 use Basis\Sharding\Entity\Subscription;
 use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Schema\Model;
+use Basis\Sharding\Select;
 use Exception;
 
 class Runtime implements Driver
@@ -116,6 +116,28 @@ class Runtime implements Driver
         $this->models = [];
 
         return $this;
+    }
+
+    public function select(string $table): Select
+    {
+        return new Select(function (Select $select) use ($table) {
+            $result = [];
+            foreach ($this->find($table) as $row) {
+                foreach ($select->conditions as $field => $where) {
+                    foreach ($where->getConditions() as $condition) {
+                        if ($condition->isGreaterThan !== null && $row[$field] <= $condition->isGreaterThan) {
+                            continue 3;
+                        }
+                    }
+                }
+                $result[] = (object) $row;
+                if ($select->limit && count($result) == $select->limit) {
+                    break;
+                }
+            }
+
+            return $result;
+        });
     }
 
     public function update(string|object $class, array|int|string $id, ?array $data = null): ?object

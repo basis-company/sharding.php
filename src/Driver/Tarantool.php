@@ -8,6 +8,7 @@ use Basis\Sharding\Entity\Subscription;
 use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Schema\Model;
+use Basis\Sharding\Select;
 use Exception;
 use Tarantool\Client\Client;
 use Tarantool\Client\Schema\Criteria;
@@ -220,6 +221,34 @@ class Tarantool implements Driver
     {
         $this->mapper->dropUserSpaces();
         return $this;
+    }
+
+    public function select(string $table): Select
+    {
+        return new Select(function (Select $select) use ($table) {
+            $fields = array_keys($select->conditions);
+            $index = $this->mapper->getSpace($table)->castIndex($fields);
+            $criteria = Criteria::index($index['iid']);
+            if ($select->limit) {
+                $criteria = $criteria->andLimit($select->limit);
+            }
+            if (count($select->conditions) > 1) {
+                throw new Exception("Not implemented");
+            }
+            foreach ($select->conditions as $where) {
+                $conditions = $where->getConditions();
+                if (count($conditions) > 1) {
+                    throw new Exception("Not implemented");
+                }
+                [$condition] = $conditions;
+                if ($condition->isGreaterThan !== null) {
+                    $criteria = $criteria->andGtIterator()->andKey([$condition->isGreaterThan]);
+                }
+            }
+
+            $tuples = $this->mapper->client->getSpace($table)->select($criteria);
+            return array_map(fn ($tuple) => $this->mapper->getSpace($table)->getInstance($tuple), $tuples);
+        });
     }
 
     public function update(string|object $table, array|int|string $id, ?array $data = null): ?object
