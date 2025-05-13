@@ -78,6 +78,7 @@ class Runtime implements Driver
             $data = $this->data[$class];
         }
 
+        usort($data, fn ($a, $b) => $a['id'] <=> $b['id']);
         return $data;
     }
 

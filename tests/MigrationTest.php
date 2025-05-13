@@ -6,6 +6,7 @@ namespace Basis\Sharding\Test;
 
 use Basis\Sharding\Database;
 use Basis\Sharding\Driver\Runtime;
+use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Schema;
@@ -60,6 +61,54 @@ class MigrationTest extends TestCase
         }
 
         $this->assertCount(2, $database->find(Topology::class));
+        $database->dispatch(new Migrate(Activity::class, pageSize: 1, iterations: 1));
+        $buckets = $database->getBuckets(Activity::class);
+        $this->assertSame($buckets[0]->version, 1);
+
+        $writableStorages = array_map(
+            fn($bucket) => $database->getStorageDriver($bucket->storage),
+            $database->find(Bucket::class, ['name' => $buckets[0]->name, 'version' => 2, 'replica' => 0]),
+        );
+
+        $readableStorages = array_map(
+            fn($bucket) => $database->getStorageDriver($bucket->storage),
+            $database->find(Bucket::class, ['name' => $buckets[0]->name, 'version' => 2, 'replica' => 0]),
+        );
+
+        $this->assertCount(1, array_merge(
+            ...array_map(fn($storage) => $storage->find('telemetry_activity'), $writableStorages)
+        ));
+
+        $this->assertCount(1, array_merge(
+            ...array_map(fn($storage) => $storage->find('telemetry_activity'), $readableStorages)
+        ));
+
+        [$first] = array_merge(
+            ...array_map(fn($storage) => $storage->find('telemetry_activity'), $writableStorages)
+        );
+
+        $database->dispatch(new Migrate(Activity::class, pageSize: 2, iterations: 1));
+
+        $this->assertCount(3, array_merge(
+            ...array_map(fn($storage) => $storage->find('telemetry_activity'), $writableStorages)
+        ));
+        $this->assertCount(3, array_merge(
+            ...array_map(fn($storage) => $storage->find('telemetry_activity'), $readableStorages)
+        ));
+
+        $database->dispatch(new Migrate(Activity::class, pageSize: 2, iterations: 2));
+        $this->assertCount(7, array_merge(
+            ...array_map(fn($storage) => $storage->find('telemetry_activity'), $writableStorages)
+        ));
+        $this->assertCount(7, array_merge(
+            ...array_map(fn($storage) => $storage->find('telemetry_activity'), $readableStorages)
+        ));
+
+        // register change
+        $database->update(Activity::class, $first['id'], ['type' => 27]);
+        $this->assertSame($database->findOne(Activity::class, ['id' => $first['id']])->type, 27);
+
+        // final migration
         $database->dispatch(new Migrate(Activity::class));
 
         $buckets = $database->getBuckets(Activity::class);
@@ -79,5 +128,6 @@ class MigrationTest extends TestCase
         $this->assertCount(1, $database->getStorageDriver($writable[1]->storage)->getListeners('telemetry_activity'));
 
         $this->assertCount(10, $database->find(Activity::class));
+        $this->assertSame($database->findOne(Activity::class, ['id' => $first['id']])->type, 27);
     }
 }

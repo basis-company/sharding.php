@@ -33,7 +33,7 @@ class Database implements Crud
 
     public function create(string $class, array $data): object
     {
-        if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
+        if (property_exists($class, 'id') && (!array_key_exists('id', $data) || !$data['id'])) {
             $data['id'] = $this->generateId($class);
         }
 
@@ -107,8 +107,8 @@ class Database implements Crud
             return $instance;
         }
 
-        if (property_exists($class, 'id') && !array_key_exists('id', $data)) {
-            $data = array_merge(['id' => $this->generateId($class)], $data);
+        if (property_exists($class, 'id') && (!array_key_exists('id', $data) || !$data['id'])) {
+            $data = array_merge($data, ['id' => $this->generateId($class)]);
         }
 
         return $this->fetchOne($class)

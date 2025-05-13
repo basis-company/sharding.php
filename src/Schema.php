@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Basis\Sharding;
 
 use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Migration;
 use Basis\Sharding\Entity\Sequence;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Topology;

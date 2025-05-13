@@ -4,8 +4,8 @@ namespace Basis\Sharding\Job;
 
 use Basis\Sharding\Database;
 use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Migration;
 use Basis\Sharding\Entity\Topology;
-use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Interface\Job;
 use Basis\Sharding\Interface\Locator;
 use Exception;
@@ -14,6 +14,8 @@ class Migrate implements Job
 {
     public function __construct(
         public readonly string $class,
+        public readonly int $pageSize = 10_000,
+        public readonly int $iterations = 10_000,
     ) {
     }
 
@@ -40,8 +42,11 @@ class Migrate implements Job
         ]);
 
         $segment = $database->schema->getSegmentByName($currentTopology->name);
+        $classes = $segment->getClasses();
+        $tables = $segment->getTables();
+
         $locator = null;
-        foreach ($segment->getClasses() as $class) {
+        foreach ($classes as $class) {
             if (is_a($class, Locator::class, true)) {
                 $locator = $class;
                 break;
@@ -50,60 +55,127 @@ class Migrate implements Job
 
         $nextBuckets = $database->locator->generateBuckets($nextTopology);
         array_map(fn ($bucket) => $database->locator->assignStorage($bucket, $locator), $nextBuckets);
-
-        foreach ($currentBuckets as $currentBucket) {
-            foreach ($segment->getTables() as $table) {
-                $database->getStorageDriver($currentBucket->storage)->registerChanges($table, 'migration');
-            }
-        }
-
-        $data = [];
-        foreach ($segment->getClasses() as $class) {
-            $data[$class] = [];
-        }
-
-        // migrate data from current to next
-        foreach ($currentBuckets as $bucket) {
-            foreach ($data as $class => $rows) {
-                $driver = $database->getStorageDriver($bucket->storage);
-                $data[$class] = array_merge($rows, $driver->find($segment->getTable($class)));
-            }
-        }
-
-        $sharded = [];
-        foreach ($data as $class => $rows) {
-            $sharded[$class] = [];
-            foreach ($rows as $row) {
-                $shard = $database->locator->getShard($nextTopology, $class, $row);
-                if (!array_key_exists($shard, $sharded[$class])) {
-                    $sharded[$class][$shard] = [];
-                }
-                $sharded[$class][$shard][] = $row;
-            }
-        }
-
         if ($nextTopology->replicas) {
             array_map(fn ($bucket) => $database->locator->assignStorage($bucket, $locator), $nextBuckets);
         }
 
-        foreach ($nextBuckets as $nextBucket) {
-            $driver = $database->getStorageDriver($nextBucket->storage);
-            foreach ($sharded as $class => $shardedRows) {
-                foreach ($shardedRows[$nextBucket->shard] as $row) {
-                    $driver->create($segment->getTable($class), $row);
-                }
+        foreach ($currentBuckets as $currentBucket) {
+            foreach ($tables as $table) {
+                $database->getStorageDriver($currentBucket->storage)->registerChanges($table, 'migration');
             }
         }
+
+        if (!$database->schema->getClassSegment(Migration::class)) {
+            $database->schema->register(Migration::class);
+        }
+
+        $migration = $database->findOrCreate(Migration::class, [
+            'name' => $nextTopology->name,
+            'version' => $nextTopology->version,
+        ]);
+
+        assert($migration instanceof Migration);
+        $complete = 0;
+
+        // migrate data from current to next
+
+        while (true) {
+            $bucket = $currentBuckets[$migration->bucket];
+            $class = $classes[$migration->table];
+            $table = $tables[$migration->table];
+            $driver = $database->getStorageDriver($bucket->storage);
+
+            $rows = $driver->select($table)
+                ->where('id')
+                ->isGreaterThan($migration->key)
+                ->limit($this->pageSize)
+                ->toArray();
+
+            if (!count($rows)) {
+                if (array_key_exists($migration->table + 1, $classes)) {
+                    // next class
+                    $migration = $database->update($migration, [
+                        'table' => $migration->table + 1,
+                        'key' => "",
+                    ]);
+                } elseif (array_key_exists($migration->bucket + 1, $currentBuckets)) {
+                    // next bucket
+                    $migration = $database->update($migration, [
+                        'bucket' => $migration->bucket + 1,
+                        'table' => 0,
+                        'key' => "",
+                    ]);
+                } else {
+                    // migration complete
+                    break;
+                }
+                continue;
+            }
+
+            $sharded = [];
+            $key = null;
+            foreach ($rows as $row) {
+                $row = (array) $row;
+                $shard = $database->locator->getShard($nextTopology, $class, $row);
+                if (!array_key_exists($shard, $sharded)) {
+                    $sharded[$shard] = [];
+                }
+                $sharded[$shard][] = $row;
+                $key = $row['id'];
+            }
+
+            foreach ($nextBuckets as $nextBucket) {
+                if (array_key_exists($nextBucket->shard, $sharded)) {
+                    $driver = $database->getStorageDriver($nextBucket->storage);
+                    foreach ($sharded[$nextBucket->shard] as $row) {
+                        $driver->findOrCreate($table, ['id' => $row['id']], $row);
+                    }
+                }
+            }
+
+            $migration = $database->update($migration, ['key' => (string) $key]);
+
+            if (++$complete >= $this->iterations) {
+                return;
+            }
+        }
+
 
         foreach ($currentBuckets as $currentBucket) {
-            foreach ($segment->getTables() as $table) {
-                $changes = $database->getStorageDriver($currentBucket->storage)->getChanges('migration');
-                if (count($changes)) {
-                    throw new Exception("Migration changes not applied");
+            $changes = $database->getStorageDriver($currentBucket->storage)->getChanges('migration');
+            if (count($changes)) {
+                $sharded = [];
+                foreach ($changes as $change) {
+                    $class = $classes[array_search($change->table, $tables)];
+                    $row = (array) $change->data;
+                    $shard = $database->locator->getShard($nextTopology, $class, $row);
+                    if (!array_key_exists($shard, $sharded)) {
+                        $sharded[$shard] = [];
+                    }
+                    if (!array_key_exists($change->table, $sharded[$shard])) {
+                        $sharded[$shard][$change->table] = [];
+                    }
+
+                    $sharded[$shard][$change->table][] = $change->data;
+                }
+
+                foreach ($nextBuckets as $nextBucket) {
+                    if (array_key_exists($nextBucket->shard, $sharded)) {
+                        $driver = $database->getStorageDriver($nextBucket->storage);
+                        foreach ($sharded[$nextBucket->shard] as $table => $rows) {
+                            foreach ($rows as $row) {
+                                $result = $driver->update($table, $row['id'], $row);
+                            }
+                        }
+                    }
+                }
+
+                $database->getStorageDriver($currentBucket->storage)->ackChanges($changes);
+                if (++$complete >= $this->iterations) {
+                    return;
                 }
             }
         }
-
 
         $database->update($nextTopology, ['status' => Topology::READY_STATUS]);
         $database->update($currentTopology, ['status' => Topology::STALE_STATUS]);

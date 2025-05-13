@@ -6,7 +6,7 @@ namespace Basis\Sharding;
 
 class Where
 {
-    public ?int $isGreaterThan = null;
+    public null|int|string $isGreaterThan = null;
 
     public function __construct(
         public readonly Select $select,
@@ -14,7 +14,7 @@ class Where
     ) {
     }
 
-    public function isGreaterThan(int $value): Select
+    public function isGreaterThan(int|string $value): Select
     {
         $this->isGreaterThan = $value;
         return $this->select;
