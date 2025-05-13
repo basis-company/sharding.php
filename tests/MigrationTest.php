@@ -65,15 +65,23 @@ class MigrationTest extends TestCase
         $buckets = $database->getBuckets(Activity::class);
         $this->assertSame($buckets[0]->version, 1);
 
-        $writableStorages = array_map(
-            fn($bucket) => $database->getStorageDriver($bucket->storage),
+        $writableStoragesKeys = array_map(
+            fn($bucket) => $bucket->storage,
             $database->find(Bucket::class, ['name' => $buckets[0]->name, 'version' => 2, 'replica' => 0]),
         );
 
+        $this->assertCount(2, $writableStoragesKeys);
+        $writableStorages = array_map(fn($key) => $database->getStorageDriver($key), $writableStoragesKeys);
+
         $readableStorages = array_map(
             fn($bucket) => $database->getStorageDriver($bucket->storage),
-            $database->find(Bucket::class, ['name' => $buckets[0]->name, 'version' => 2, 'replica' => 0]),
+            array_filter(
+                $database->find(Bucket::class, ['name' => $buckets[0]->name, 'version' => 2]),
+                fn($bucket) => !in_array($bucket->storage, $writableStoragesKeys),
+            )
         );
+
+        $this->assertCount(2, $readableStorages);
 
         $this->assertCount(1, array_merge(
             ...array_map(fn($storage) => $storage->find('telemetry_activity'), $writableStorages)
