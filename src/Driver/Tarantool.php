@@ -41,6 +41,11 @@ class Tarantool implements Driver
         );
     }
 
+    public function insert(string $table, array $rows): array
+    {
+        return array_map(fn ($row) => $this->create($table, $row), $rows);
+    }
+
     public function processLuaResult(string $table, array $params, string $query, string $action): object
     {
         $listeners = $this->getListeners($table);

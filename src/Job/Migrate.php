@@ -126,10 +126,7 @@ class Migrate implements Job
 
             foreach ($nextBuckets as $nextBucket) {
                 if (array_key_exists($nextBucket->shard, $sharded)) {
-                    $driver = $database->getStorageDriver($nextBucket->storage);
-                    foreach ($sharded[$nextBucket->shard] as $row) {
-                        $driver->findOrCreate($table, ['id' => $row['id']], $row);
-                    }
+                    $database->getStorageDriver($nextBucket->storage)->insert($table, $sharded[$nextBucket->shard]);
                 }
             }
 

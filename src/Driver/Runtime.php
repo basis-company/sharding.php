@@ -17,18 +17,31 @@ class Runtime implements Driver
     public array $models = [];
     public array $context = [];
 
+    public function insert(string $table, array $rows): array
+    {
+        foreach ($rows as $i => $row) {
+            $sorted = [];
+            foreach ($this->models[$table]->getProperties() as $property) {
+                if (array_key_exists($property->name, $row)) {
+                    $sorted[$property->name] = $row[$property->name];
+                } else {
+                    $sorted[$property->name] = $this->getDefaultPropetryValue($property->type);
+                }
+            }
+            $rows[$i] = $sorted;
+        }
+
+        foreach ($rows as $row) {
+            $this->data[$table][] = $row;
+            $this->registerChange($table, 'create', $row);
+        }
+
+        return array_map(fn ($row) => (object) $row, $rows);
+    }
+
     public function create(string $class, array $data): object
     {
-        foreach ($this->models[$class]->getProperties() as $property) {
-            if (array_key_exists($property->name, $data)) {
-                $sorted[$property->name] = $data[$property->name];
-            } else {
-                $sorted[$property->name] = $this->getDefaultPropetryValue($property->type);
-            }
-        }
-        $this->data[$class][] = $sorted;
-        $this->registerChange($class, 'create', $sorted);
-        return (object) $sorted;
+        return $this->insert($class, [$data])[0];
     }
 
     public function delete(string|object $class, array|int|null|string $id = null): ?object
