@@ -3,10 +3,13 @@
 namespace Basis\Sharding\Schema;
 
 use Basis\Sharding\Attribute\Sharding as ShardingAttribute;
+use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Interface\Indexing;
 use Basis\Sharding\Interface\Sharding as ShardingInterface;
 use ReflectionClass;
+use ReflectionProperty;
 use Tarantool\Mapper\Space;
+use Tarantool\Mapper\Repository;
 
 class Model
 {
@@ -27,8 +30,27 @@ class Model
         public readonly string $table,
     ) {
         $reflection = new ReflectionClass($class);
-        foreach ($reflection->getConstructor()->getParameters() as $parameter) {
+        foreach ($reflection->getConstructor()?->getParameters() ?: [] as $parameter) {
             $this->properties[] = new Property($parameter->getName(), $parameter->getType()->getName());
+        }
+        if (!count($this->properties)) {
+            foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
+                if ($property->hasType()) {
+                    $type = $property->getType()->getName();
+                } else {
+                    foreach (explode(PHP_EOL, $property->getDocComment()) as $line) {
+                        if (str_contains($line, '@var')) {
+                            $type = trim(explode('@var ', $line)[1]);
+                            $type = match ($type) {
+                                ucfirst($type) => 'int',
+                                'integer' => 'int',
+                                default => $type,
+                            };
+                        }
+                    }
+                }
+                $this->properties[] = new Property($property->getName(), $type);
+            }
         }
 
         if (is_a($class, ShardingInterface::class, true)) {
@@ -54,12 +76,33 @@ class Model
         }
     }
 
+    public function append(string $class)
+    {
+        if (class_exists(Repository::class, false) && is_a($class, Repository::class, true)) {
+            foreach ((new $class())->indexes as $index) {
+                if (array_is_list($index)) {
+                    $index = [
+                        'fields' => $index,
+                    ];
+                }
+                if (!array_key_exists('unique', $index)) {
+                    $index['unique'] = false;
+                }
+                $this->indexes[] = new Index($index['fields'], $index['unique']);
+            }
+        }
+    }
+
     /**
      * @return Index[]
      */
     public function getIndexes(): array
     {
-        return $this->indexes;
+        $indexes = [];
+        foreach ($this->indexes as $index) {
+            $indexes[$index->name] = $index;
+        }
+        return array_values($indexes);
     }
 
     /**
@@ -68,6 +111,16 @@ class Model
     public function getProperties(): array
     {
         return $this->properties;
+    }
+
+    public function getTable(?Bucket $bucket = null): string
+    {
+        $table = $this->table;
+        if ($bucket && $bucket->flags & Bucket::DEDICATED_FLAG) {
+            $table = substr($table, strlen($bucket->name) + 1);
+        }
+
+        return $table;
     }
 
     public function isSharded(): bool

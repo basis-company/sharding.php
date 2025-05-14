@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Basis\Sharding;
 
 use Basis\Sharding\Entity\Bucket;
-use Basis\Sharding\Entity\Migration;
 use Basis\Sharding\Entity\Sequence;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Topology;
@@ -13,7 +12,9 @@ use Basis\Sharding\Interface\Domain as DomainInterface;
 use Basis\Sharding\Interface\Segment as SegmentInterface;
 use Basis\Sharding\Schema\Model;
 use Basis\Sharding\Schema\Segment;
+use Tarantool\Mapper\Repository;
 use Exception;
+use ReflectionClass;
 
 class Schema
 {
@@ -82,24 +83,38 @@ class Schema
         return array_key_exists($table, $this->tableClass);
     }
 
-    public function register(string $class)
+    public function register(string $class, ?string $domain = null)
     {
         if (array_key_exists($class, $this->classes)) {
             throw new Exception("Class $class already registered");
         }
 
         $parts = explode("\\", $class);
-        array_pop($parts); // name
+        $name = array_pop($parts); // name
 
-        if (is_a($class, DomainInterface::class, true)) {
-            $domain = $class::getDomain();
-        } else {
-            $domain = array_pop($parts);
-            if ($domain == 'Entity') {
-                $domain = count($parts) ? array_pop($parts) : 'Default';
+        if (class_exists(Repository::class, false) && is_a($class, Repository::class, true)) {
+            foreach ($this->segments as $segment) {
+                foreach ($segment->getClasses() as $candidate) {
+                    if ((new ReflectionClass($candidate))->getShortName() == $name) {
+                        $segment->getClassModel($candidate)->append($class);
+                        return;
+                    }
+                }
             }
         }
-        $domain = self::toUnderscore($domain);
+
+        if ($domain === null) {
+            if (is_a($class, DomainInterface::class, true)) {
+                $domain = $class::getDomain();
+            } else {
+                $domain = array_pop($parts);
+                if ($domain == 'Entity') {
+                    $domain = count($parts) ? array_pop($parts) : 'Default';
+                }
+            }
+            $domain = self::toUnderscore($domain);
+        }
+
 
         $postfix = '';
         if (is_a($class, SegmentInterface::class, true)) {
