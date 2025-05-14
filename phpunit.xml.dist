@@ -9,11 +9,10 @@
         stopOnFailure="false">
       <coverage>
         <include>
-              <directory>src</directory>
+          <directory>src</directory>
         </include>
         <report>
-              <clover outputFile="coverage.clover"/>
-              <text outputFile="coverage.txt"/>
+          <text outputFile="coverage.txt"/>
         </report>
       </coverage>
       <php>
