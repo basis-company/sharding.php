@@ -140,6 +140,15 @@ class Locator implements LocatorInterface, ShardingInterface
 
         array_walk($buckets, fn($bucket) => $this->assignStorage($bucket, $class, $topology));
 
+        if ($topology && $topology->replicas > 1) {
+            shuffle($buckets);
+            $groups = [];
+            foreach ($buckets as $bucket) {
+                $groups[$bucket->shard] = $bucket;
+            }
+            return array_values($groups);
+        }
+
         return array_values($buckets);
     }
 

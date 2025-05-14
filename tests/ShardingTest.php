@@ -20,6 +20,23 @@ use PHPUnit\Framework\TestCase;
 
 class ShardingTest extends TestCase
 {
+    public function testReplicaSelection()
+    {
+        $database = new Database(new Runtime());
+        $database->schema->register(Activity::class);
+        $database->create(Storage::class, ['type' => 'runtime']);
+        $database->create(Storage::class, ['type' => 'runtime']);
+
+        $database->dispatch(new Configure(Activity::class, 0, 2));
+        $buckets = $database->getBuckets(Activity::class);
+        $this->assertCount(1, $buckets);
+
+        foreach (range(1, 5) as $_) {
+            $buckets = array_merge($buckets, $database->getBuckets(Activity::class));
+        }
+        $this->assertCount(2, array_unique(array_map(fn ($bucket) => $bucket->id, $buckets)));
+    }
+
     public function testTopology()
     {
         $schema = new Schema();
