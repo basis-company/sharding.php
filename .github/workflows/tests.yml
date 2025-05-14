@@ -12,5 +12,5 @@ jobs:
       - uses: php-actions/composer@v6
         with:
           php_version: ${{ matrix.php }}
-      - run: docker compose up -d
+      - run: docker compose up -d --quiet-pull
       - run: vendor/bin/phpunit tests --no-coverage
