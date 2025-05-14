@@ -18,6 +18,7 @@ class Subscription implements Indexing
     {
         return "sharding_subscription";
     }
+
     public static function getIndexes(): array
     {
         return [
