@@ -18,26 +18,11 @@ class Runtime implements Driver
     public array $models = [];
     public array $context = [];
 
-    public function insert(string $table, array $rows): array
+    public function ackChanges(array $changes): void
     {
-        foreach ($rows as $i => $row) {
-            $sorted = [];
-            foreach ($this->models[$table]->getProperties() as $property) {
-                if (array_key_exists($property->name, $row)) {
-                    $sorted[$property->name] = $row[$property->name];
-                } else {
-                    $sorted[$property->name] = $this->getDefaultPropetryValue($property->type);
-                }
-            }
-            $rows[$i] = $sorted;
+        foreach ($changes as $change) {
+            $this->delete(Change::getSpaceName(), $change->id);
         }
-
-        foreach ($rows as $row) {
-            $this->data[$table][] = $row;
-            $this->registerChange($table, 'create', $row);
-        }
-
-        return array_map(fn ($row) => (object) $row, $rows);
     }
 
     public function create(string $class, array $data): object
@@ -57,23 +42,6 @@ class Runtime implements Driver
         }
 
         return null;
-    }
-
-    public function getDefaultPropetryValue(string $type)
-    {
-        switch ($type) {
-            case 'int':
-                return 0;
-            case 'string':
-                return '';
-            case 'bool':
-                return false;
-        }
-    }
-
-    public function getUsage(): int
-    {
-        return strlen(json_encode($this->data));
     }
 
     public function find(string $class, array $query = []): array
@@ -120,101 +88,39 @@ class Runtime implements Driver
         return $row;
     }
 
+    public function getChanges(string $listener = '', int $limit = 100): array
+    {
+        $changes = [];
+        if (array_key_exists(Change::getSpaceName(), $this->data)) {
+            foreach ($this->data[Change::getSpaceName()] as $change) {
+                if (!$listener || $change['listener'] == $listener) {
+                    $changes[] = new Change(...array_values($change));
+                    if (count($changes) >= $limit) {
+                        break;
+                    }
+                }
+            }
+        }
+        return $changes;
+    }
+
+    public function getDefaultPropetryValue(string $type)
+    {
+        switch ($type) {
+            case 'int':
+                return 0;
+            case 'string':
+                return '';
+            case 'bool':
+                return false;
+        }
+    }
+
     public function getDsn(): string
     {
         return '';
     }
 
-    public function reset(): self
-    {
-        $this->data = [];
-        $this->models = [];
-
-        return $this;
-    }
-
-    public function select(string $table): Select
-    {
-        return new Select(function (Select $select) use ($table) {
-            $result = [];
-            foreach ($this->find($table) as $row) {
-                foreach ($select->conditions as $field => $where) {
-                    foreach ($where->getConditions() as $condition) {
-                        if ($condition->isGreaterThan !== null && $row[$field] <= $condition->isGreaterThan) {
-                            continue 3;
-                        }
-                    }
-                }
-                $result[] = (object) $row;
-                if ($select->limit && count($result) == $select->limit) {
-                    break;
-                }
-            }
-
-            return $result;
-        });
-    }
-
-    public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
-    {
-        if (!array_key_exists($class, $this->data)) {
-            return null;
-        }
-        foreach ($this->data[$class] as $i => $row) {
-            if ($row['id'] == $id) {
-                $this->data[$class][$i] = array_merge($row, $data);
-                $this->registerChange($class, 'update', $this->data[$class][$i]);
-                return (object) $this->data[$class][$i];
-            }
-        }
-
-        return null;
-    }
-
-    public function syncSchema(Database $database, Bucket $bucket): void
-    {
-        $bootstrappers = [];
-
-        foreach ($database->schema->getSegmentByName($bucket->name, create: false)->getModels() as $model) {
-            if (array_key_exists($model->getTable($bucket), $this->data)) {
-                continue;
-            }
-            $this->data[$model->getTable($bucket)] = [];
-            $this->models[$model->getTable($bucket)] = $model;
-            if (is_a($model->class, Bootstrap::class, true)) {
-                $bootstrappers[] = $model->class;
-            }
-        }
-
-        foreach ($bootstrappers as $bootstrapper) {
-            $bootstrapper::bootstrap($database);
-        }
-    }
-
-    public function hasTable(string $table): bool
-    {
-        return array_key_exists($table, $this->data);
-    }
-
-    public function setContext(array $context): void
-    {
-        $this->context = $context;
-    }
-
-    public function registerChanges(string $table, string $listener): void
-    {
-        if (!$this->hasTable(Subscription::getSpaceName())) {
-            $model = new Model(Subscription::class, Subscription::getSpaceName());
-            $this->data[$model->table] = [];
-            $this->models[$model->table] = $model;
-        }
-
-        $this->data[Subscription::getSpaceName()][] = [
-            'id' => count($this->data[Subscription::getSpaceName()]) + 1,
-            'listener' => $listener,
-            'table' => $table,
-        ];
-    }
     public function getListeners(string $table): array
     {
         if (strpos($table, 'sharding_') === 0) {
@@ -231,6 +137,38 @@ class Runtime implements Driver
         }
 
         return array_keys($listeners);
+    }
+
+    public function getUsage(): int
+    {
+        return strlen(json_encode($this->data));
+    }
+
+    public function hasTable(string $table): bool
+    {
+        return array_key_exists($table, $this->data);
+    }
+
+    public function insert(string $table, array $rows): array
+    {
+        foreach ($rows as $i => $row) {
+            $sorted = [];
+            foreach ($this->models[$table]->getProperties() as $property) {
+                if (array_key_exists($property->name, $row)) {
+                    $sorted[$property->name] = $row[$property->name];
+                } else {
+                    $sorted[$property->name] = $this->getDefaultPropetryValue($property->type);
+                }
+            }
+            $rows[$i] = $sorted;
+        }
+
+        foreach ($rows as $row) {
+            $this->data[$table][] = $row;
+            $this->registerChange($table, 'create', $row);
+        }
+
+        return array_map(fn ($row) => (object) $row, $rows);
     }
 
     public function registerChange(string $table, string $action, array $data): void
@@ -263,26 +201,89 @@ class Runtime implements Driver
         }
     }
 
-    public function ackChanges(array $changes): void
+    public function registerChanges(string $table, string $listener): void
     {
-        foreach ($changes as $change) {
-            $this->delete(Change::getSpaceName(), $change->id);
+        if (!$this->hasTable(Subscription::getSpaceName())) {
+            $model = new Model(Subscription::class, Subscription::getSpaceName());
+            $this->data[$model->table] = [];
+            $this->models[$model->table] = $model;
+        }
+
+        $this->data[Subscription::getSpaceName()][] = [
+            'id' => count($this->data[Subscription::getSpaceName()]) + 1,
+            'listener' => $listener,
+            'table' => $table,
+        ];
+    }
+
+    public function reset(): self
+    {
+        $this->data = [];
+        $this->models = [];
+
+        return $this;
+    }
+
+    public function select(string $table): Select
+    {
+        return new Select(function (Select $select) use ($table) {
+            $result = [];
+            foreach ($this->find($table) as $row) {
+                foreach ($select->conditions as $field => $where) {
+                    foreach ($where->getConditions() as $condition) {
+                        if ($condition->isGreaterThan !== null && $row[$field] <= $condition->isGreaterThan) {
+                            continue 3;
+                        }
+                    }
+                }
+                $result[] = (object) $row;
+                if ($select->limit && count($result) == $select->limit) {
+                    break;
+                }
+            }
+
+            return $result;
+        });
+    }
+
+    public function setContext(array $context): void
+    {
+        $this->context = $context;
+    }
+
+    public function syncSchema(Database $database, Bucket $bucket): void
+    {
+        $bootstrappers = [];
+
+        foreach ($database->schema->getSegmentByName($bucket->name, create: false)->getModels() as $model) {
+            if (array_key_exists($model->getTable($bucket), $this->data)) {
+                continue;
+            }
+            $this->data[$model->getTable($bucket)] = [];
+            $this->models[$model->getTable($bucket)] = $model;
+            if (is_a($model->class, Bootstrap::class, true)) {
+                $bootstrappers[] = $model->class;
+            }
+        }
+
+        foreach ($bootstrappers as $bootstrapper) {
+            $bootstrapper::bootstrap($database);
         }
     }
 
-    public function getChanges(string $listener = '', int $limit = 100): array
+    public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
     {
-        $changes = [];
-        if (array_key_exists(Change::getSpaceName(), $this->data)) {
-            foreach ($this->data[Change::getSpaceName()] as $change) {
-                if (!$listener || $change['listener'] == $listener) {
-                    $changes[] = new Change(...array_values($change));
-                    if (count($changes) >= $limit) {
-                        break;
-                    }
-                }
+        if (!array_key_exists($class, $this->data)) {
+            return null;
+        }
+        foreach ($this->data[$class] as $i => $row) {
+            if ($row['id'] == $id) {
+                $this->data[$class][$i] = array_merge($row, $data);
+                $this->registerChange($class, 'update', $this->data[$class][$i]);
+                return (object) $this->data[$class][$i];
             }
         }
-        return $changes;
+
+        return null;
     }
 }
