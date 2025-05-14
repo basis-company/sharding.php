@@ -2,6 +2,7 @@
 
 namespace Basis\Sharding\Entity;
 
+use Basis\Sharding\Attribute\Caching;
 use Basis\Sharding\Database;
 use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Driver\Tarantool;
@@ -10,6 +11,7 @@ use Basis\Sharding\Interface\Domain;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Interface\Segment;
 
+#[Caching]
 class Storage implements Bootstrap, Domain, Segment
 {
     public static $types = [

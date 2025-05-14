@@ -11,6 +11,7 @@ use Basis\Sharding\Interface\Crud;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Interface\Job;
 use Exception;
+use Psr\Cache\CacheItemPoolInterface;
 use Ramsey\Uuid\Uuid;
 
 class Database implements Crud
@@ -22,6 +23,7 @@ class Database implements Crud
         public readonly Driver $driver,
         public readonly Schema $schema = new Schema(),
         public readonly Factory $factory = new Factory(),
+        public readonly ?CacheItemPoolInterface $cache = null,
     ) {
         $this->locator = new Locator($this);
 
@@ -30,6 +32,27 @@ class Database implements Crud
                 $driver->syncSchema($this, new Bucket(0, $segment, 0, 0, 0, 1, 0));
             }
         }
+    }
+
+    public function cache(string $method, array $arguments, callable $callback)
+    {
+        if ($this->cache) {
+            $model = $this->schema->getClassModel($arguments[0]);
+            if ($model && $cache = $model->getCache()) {
+                $item = $this->cache->getItem(sha1($method . json_encode($arguments)));
+                if ($item->isHit()) {
+                    $result = $item->get();
+                } else {
+                    $result = $callback();
+                    $item->set($result);
+                    $item->expiresAfter($cache->getLifetime());
+                    $this->cache->save($item);
+                }
+                return $result;
+            }
+        }
+
+        return $callback();
     }
 
     public function create(string $class, array $data): object
@@ -76,18 +99,18 @@ class Database implements Crud
 
     public function find(string $class, array $data = []): array
     {
-        return $this->fetch($class)
+        return $this->cache(__METHOD__, func_get_args(), fn() => $this->fetch($class)
             ->from($data)
-            ->using(fn(Driver $driver, string $table) => $driver->find($table, $data));
+            ->using(fn(Driver $driver, string $table) => $driver->find($table, $data)));
     }
 
     public function findOne(string $class, array $query): ?object
     {
-        return $this->fetchOne($class)
+        return $this->cache(__METHOD__, func_get_args(), fn() => $this->fetchOne($class)
             ->from($query)
             ->using(function (Driver $driver, string $table) use ($query) {
                 return $driver->findOne($table, $query) ? [$driver->findOne($table, $query)] : [];
-            });
+            }));
     }
 
     public function findOrCreate(string $class, array $query, array $data = []): object

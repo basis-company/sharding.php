@@ -2,12 +2,14 @@
 
 namespace Basis\Sharding\Entity;
 
+use Basis\Sharding\Attribute\Caching;
 use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Indexing;
 use Basis\Sharding\Interface\Segment;
 use Basis\Sharding\Database;
 use Basis\Sharding\Schema\UniqueIndex;
 
+#[Caching]
 class Bucket implements Bootstrap, Segment, Indexing
 {
     public const DEDICATED_FLAG = 1;

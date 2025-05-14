@@ -2,6 +2,7 @@
 
 namespace Basis\Sharding\Schema;
 
+use Basis\Sharding\Attribute\Caching;
 use Basis\Sharding\Attribute\Sharding as ShardingAttribute;
 use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Interface\Indexing;
@@ -24,12 +25,16 @@ class Model
     private array $properties = [];
 
     private bool $isSharded = false;
+    private ?Caching $cache = null;
 
     public function __construct(
         public readonly string $class,
         public readonly string $table,
     ) {
         $reflection = new ReflectionClass($class);
+        if (count($reflection->getAttributes(Caching::class))) {
+            $this->cache = $reflection->getAttributes(Caching::class)[0]->newInstance();
+        }
         foreach ($reflection->getConstructor()?->getParameters() ?: [] as $parameter) {
             $this->properties[] = new Property($parameter->getName(), $parameter->getType()->getName());
         }
@@ -121,6 +126,11 @@ class Model
         }
 
         return $table;
+    }
+
+    public function getCache(): ?Caching
+    {
+        return $this->cache;
     }
 
     public function isSharded(): bool
