@@ -31,7 +31,7 @@ class ShardingTest extends TestCase
         $buckets = $database->getBuckets(Activity::class);
         $this->assertCount(1, $buckets);
 
-        foreach (range(1, 5) as $_) {
+        foreach (range(1, 10) as $_) {
             $buckets = array_merge($buckets, $database->getBuckets(Activity::class));
         }
         $this->assertCount(2, array_unique(array_map(fn ($bucket) => $bucket->id, $buckets)));

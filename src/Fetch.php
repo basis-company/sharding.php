@@ -51,7 +51,7 @@ class Fetch
                 $table = $this->database->schema->getClassTable($this->class);
             }
             if (Bucket::isDedicated($bucket)) {
-                [$_, $table] = explode('_', $table, 2);
+                $table = explode('_', $table, 2)[1];
             }
             if (!$bucket->storage) {
                 continue;

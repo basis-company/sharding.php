@@ -27,17 +27,17 @@ class SelectTest extends TestCase
         $database->schema->register(Post::class);
         array_map(fn ($n) => $database->create(Post::class, ['name' => (string) $n]), range(1, 10));
 
-        $this->assertCount(1, $database->driver->select('test_post')->limit(1));
-        $this->assertCount(2, $database->driver->select('test_post')->limit(2));
-        $this->assertCount(3, $database->driver->select('test_post')->limit(3));
-        $posts = $database->driver->select('test_post')->limit(3)->toArray();
+        $this->assertCount(1, $driver->select('test_post')->limit(1));
+        $this->assertCount(2, $driver->select('test_post')->limit(2));
+        $this->assertCount(3, $driver->select('test_post')->limit(3));
+        $posts = $driver->select('test_post')->limit(3)->toArray();
         $this->assertSame("3", array_pop($posts)->name);
 
-        $posts = $database->driver->select('test_post')->where("id")->isGreaterThan(2)->limit(1)->toArray();
+        $posts = $driver->select('test_post')->where("id")->isGreaterThan(2)->limit(1)->toArray();
         $this->assertCount(1, $posts);
         $this->assertSame("3", array_pop($posts)->name);
 
-        $posts = $database->driver->select('test_post')->where("id")->isGreaterThan(2)->limit(2)->toArray();
+        $posts = $driver->select('test_post')->where("id")->isGreaterThan(2)->limit(2)->toArray();
         $this->assertCount(2, $posts);
         $this->assertSame(["3", "4"], array_map(fn ($post) => $post->name, $posts));
     }
