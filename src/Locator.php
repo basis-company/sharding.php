@@ -14,6 +14,8 @@ use Exception;
 
 class Locator implements LocatorInterface, ShardingInterface
 {
+    public ?array $stats = null;
+
     public static function getKey(array $data): int|string|null
     {
         return $data['id'] ?? null;
@@ -146,7 +148,17 @@ class Locator implements LocatorInterface, ShardingInterface
             foreach ($buckets as $bucket) {
                 $groups[$bucket->shard] = $bucket;
             }
-            return array_values($groups);
+            $buckets = array_values($groups);
+        }
+
+        if ($this->stats !== null) {
+            foreach ($buckets as $bucket) {
+                if (!array_key_exists($bucket->id, $this->stats)) {
+                    $this->stats[$bucket->id] = 1;
+                } else {
+                    $this->stats[$bucket->id]++;
+                }
+            }
         }
 
         return array_values($buckets);

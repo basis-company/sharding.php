@@ -30,11 +30,15 @@ class ShardingTest extends TestCase
         $database->dispatch(new Configure(Activity::class, 0, 2));
         $buckets = $database->getBuckets(Activity::class);
         $this->assertCount(1, $buckets);
+        $this->assertNull($database->locator->stats);
+        $database->locator->stats = [];
 
-        foreach (range(1, 10) as $_) {
+        foreach (range(1, 20) as $_) {
             $buckets = array_merge($buckets, $database->getBuckets(Activity::class));
         }
+
         $this->assertCount(2, array_unique(array_map(fn ($bucket) => $bucket->id, $buckets)));
+        $this->assertNotCount(0, $database->locator->stats);
     }
 
     public function testTopology()
