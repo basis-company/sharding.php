@@ -1,0 +1,16 @@
+name: coverage
+on: [push]
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: docker compose up -d
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: xdebug
+          tools: phpunit, composer:v2
+      - run: composer install
+      - run: vendor/bin/phpunit
+      - run: cat ./coverage.txt
