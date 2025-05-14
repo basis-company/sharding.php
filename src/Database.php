@@ -27,7 +27,9 @@ class Database implements Crud
         $this->locator = new Locator($this);
 
         if (!$driver->hasTable($this->schema->getClassTable(Bucket::class))) {
-            array_map(fn ($segment) => $driver->syncSchema($this, $segment), array_keys(Bucket::KEYS));
+            foreach (array_keys(Bucket::KEYS) as $segment) {
+                $driver->syncSchema($this, new Bucket(0, $segment, 0, 0, 0, 1, 0));
+            }
         }
     }
 
@@ -50,7 +52,15 @@ class Database implements Crud
             $row = get_object_vars($row);
         }
         if ($class && class_exists($class)) {
-            return new $class(...array_values($row));
+            if (method_exists($class, '__construct')) {
+                return new $class(...array_values($row));
+            } else {
+                $instance = new $class();
+                foreach ($row as $key => $value) {
+                    $instance->$key = $value;
+                }
+                return $instance;
+            }
         }
         return (object) $row;
     }

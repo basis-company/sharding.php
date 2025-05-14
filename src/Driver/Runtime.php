@@ -3,6 +3,7 @@
 namespace Basis\Sharding\Driver;
 
 use Basis\Sharding\Database;
+use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Change;
 use Basis\Sharding\Entity\Subscription;
 use Basis\Sharding\Interface\Bootstrap;
@@ -170,16 +171,16 @@ class Runtime implements Driver
         return null;
     }
 
-    public function syncSchema(Database $database, string $segment): void
+    public function syncSchema(Database $database, Bucket $bucket): void
     {
         $bootstrappers = [];
 
-        foreach ($database->schema->getSegmentByName($segment, create: false)->getModels() as $model) {
-            if (array_key_exists($model->table, $this->data)) {
+        foreach ($database->schema->getSegmentByName($bucket->name, create: false)->getModels() as $model) {
+            if (array_key_exists($model->getTable($bucket), $this->data)) {
                 continue;
             }
-            $this->data[$model->table] = [];
-            $this->models[$model->table] = $model;
+            $this->data[$model->getTable($bucket)] = [];
+            $this->models[$model->getTable($bucket)] = $model;
             if (is_a($model->class, Bootstrap::class, true)) {
                 $bootstrappers[] = $model->class;
             }

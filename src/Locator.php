@@ -63,7 +63,7 @@ class Locator implements LocatorInterface, ShardingInterface
         $driver = $this->database->getStorageDriver($bucket->storage);
 
         if ($this->database->schema->hasSegment($bucket->name)) {
-            $driver->syncSchema($this->database, $bucket->name);
+            $driver->syncSchema($this->database, $bucket);
         }
 
         if ($bucket->version && !$bucket->replica) {

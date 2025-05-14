@@ -3,6 +3,7 @@
 namespace Basis\Sharding\Driver;
 
 use Basis\Sharding\Database;
+use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Change;
 use Basis\Sharding\Entity\Subscription;
 use Basis\Sharding\Interface\Bootstrap;
@@ -180,14 +181,14 @@ class Tarantool implements Driver
         return $this->mapper->hasSpace($table);
     }
 
-    public function syncSchema(Database $database, string $segment): void
+    public function syncSchema(Database $database, Bucket $bucket): void
     {
         $bootstrap = [];
-        foreach ($database->schema->getSegmentByName($segment, create: false)->getModels() as $model) {
-            if (!$this->mapper->hasSpace($model->table) && is_a($model->class, Bootstrap::class, true)) {
+        foreach ($database->schema->getSegmentByName($bucket->name, create: false)->getModels() as $model) {
+            if (!$this->mapper->hasSpace($model->getTable($bucket)) && is_a($model->class, Bootstrap::class, true)) {
                 $bootstrap[] = $model->class;
             }
-            $this->syncModel($model);
+            $this->syncModel($model, $bucket);
         }
 
         foreach ($bootstrap as $class) {
@@ -195,13 +196,13 @@ class Tarantool implements Driver
         }
     }
 
-    public function syncModel(Model $model)
+    public function syncModel(Model $model, ?Bucket $bucket = null)
     {
-        $present = $this->mapper->hasSpace($model->table);
+        $present = $this->mapper->hasSpace($model->getTable($bucket));
         if ($present) {
-            $space = $this->mapper->getSpace($model->table);
+            $space = $this->mapper->getSpace($model->getTable($bucket));
         } else {
-            $space = $this->mapper->createSpace($model->table, [
+            $space = $this->mapper->createSpace($model->getTable($bucket), [
                 'if_not_exists' => true,
             ]);
         }
