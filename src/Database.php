@@ -15,17 +15,14 @@ use Ramsey\Uuid\Uuid;
 
 class Database implements Crud
 {
-    public readonly Factory $factory;
     public readonly Locator $locator;
-    public readonly Schema $schema;
     private array $drivers = [];
 
     public function __construct(
         public readonly Driver $driver,
-        ?Schema $schema = null,
+        public readonly Schema $schema = new Schema(),
+        public readonly Factory $factory = new Factory(),
     ) {
-        $this->factory = new Factory($this);
-        $this->schema = $schema ?? new Schema();
         $this->locator = new Locator($this);
 
         if (!$driver->hasTable($this->schema->getClassTable(Bucket::class))) {
@@ -127,6 +124,11 @@ class Database implements Crud
         };
     }
 
+    public function getBuckets(string $class, array $data = [], bool $writable = false, bool $multiple = true): array
+    {
+        return $this->locator->getBuckets($class, $data, $writable, $multiple);
+    }
+
     public function getStorageDriver(int $storageId): Driver
     {
         if ($storageId == 1) {
@@ -142,11 +144,6 @@ class Database implements Crud
         return $this->drivers[$storageId];
     }
 
-    public function getBuckets(string $class, array $data = [], bool $writable = false, bool $multiple = true): array
-    {
-        return $this->locator->getBuckets($class, $data, $writable, $multiple);
-    }
-
     public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
     {
         $instance = null;
@@ -154,6 +151,7 @@ class Database implements Crud
             $instance = $class;
             [$class, $id, $data] = [get_class($class), $class->id, $id];
         }
+
         $next = $this->fetchOne($class)
             ->from(['id' => $id], writable: true, multiple: true)
             ->using(function (Driver $driver, string $table) use ($id, $data) {

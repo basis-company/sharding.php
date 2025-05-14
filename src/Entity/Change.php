@@ -17,14 +17,15 @@ class Change implements Indexing
     ) {
     }
 
-    public static function getSpaceName(): string
-    {
-        return "sharding_change";
-    }
     public static function getIndexes(): array
     {
         return [
             new Index(["listener"]),
         ];
+    }
+
+    public static function getSpaceName(): string
+    {
+        return "sharding_change";
     }
 }

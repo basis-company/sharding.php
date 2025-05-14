@@ -14,14 +14,6 @@ use Exception;
 
 class Locator implements LocatorInterface, ShardingInterface
 {
-    public string $bucketsTable;
-
-    public function __construct(
-        public readonly Database $database,
-    ) {
-        $this->bucketsTable = $database->schema->getClassTable(Bucket::class);
-    }
-
     public static function getKey(array $data): int|string|null
     {
         return $data['id'] ?? null;
@@ -50,20 +42,20 @@ class Locator implements LocatorInterface, ShardingInterface
         return $availableStorages[array_search(min($usages), $usages)];
     }
 
+    public function __construct(
+        public readonly Database $database,
+    ) {
+    }
+
     public function assignStorage(Bucket $bucket, $class)
     {
         if (!$bucket->storage) {
             $casting = [is_a($class, LocatorInterface::class, true) ? $class : self::class, 'castStorage'];
-            $storage = call_user_func($casting, $this->database, $bucket);
-
-            $this->database->driver->update($this->bucketsTable, $bucket->id, ['storage' => $storage->id]);
-            $bucket->storage = $storage->id;
+            $this->database->update($bucket, ['storage' => call_user_func($casting, $this->database, $bucket)->id]);
         }
 
-        $driver = $this->database->getStorageDriver($bucket->storage);
-
         if ($this->database->schema->hasSegment($bucket->name)) {
-            $driver->syncSchema($this->database, $bucket);
+            $this->database->getStorageDriver($bucket->storage)->syncSchema($this->database, $bucket);
         }
 
         if ($bucket->version && !$bucket->replica) {
@@ -72,6 +64,7 @@ class Locator implements LocatorInterface, ShardingInterface
                 'version' => $bucket->version,
             ]);
             if ($topology->replicas) {
+                $driver = $this->database->getStorageDriver($bucket->storage);
                 array_map(
                     fn($table) => $driver->registerChanges($table, 'replication'),
                     $this->database->schema->getSegmentByName($bucket->name)->getTables(),
@@ -80,12 +73,31 @@ class Locator implements LocatorInterface, ShardingInterface
         }
     }
 
+    public function generateBuckets(Topology $topology): array
+    {
+        $buckets = [];
+
+        foreach (range(1, $topology->shards) as $shard) {
+            foreach (range(0, $topology->replicas) as $replica) {
+                $buckets[] = $this->database->findOrCreate(Bucket::class, [
+                    'name' => $topology->name,
+                    'version' => $topology->version,
+                    'shard' => $shard - 1,
+                    'replica' => $replica,
+                ]);
+            }
+        }
+
+        return $buckets;
+    }
+
     public function getBuckets(string $class, array $data = [], bool $writable = false, bool $multiple = true): array
     {
+        $driver = $this->database->getStorageDriver(1);
+        $table = $this->database->schema->getClassTable(Bucket::class);
+
         if ($class == Bucket::class) {
-            $row = $this->database->driver->findOrFail($this->bucketsTable, [
-                'id' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME]
-            ]);
+            $row = $driver->findOrFail($table, ['id' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME]]);
             return [$this->database->factory->getInstance(Bucket::class, $row)];
         }
 
@@ -101,7 +113,7 @@ class Locator implements LocatorInterface, ShardingInterface
             }
         }
 
-        $buckets = $this->database->driver->find($this->bucketsTable, compact('name'));
+        $buckets = $driver->find($table, ['name' => $name]);
         $buckets = array_map(fn ($data) => $this->database->factory->getInstance(Bucket::class, $data), $buckets);
 
         $topology = $this->getTopology($class);
@@ -131,6 +143,23 @@ class Locator implements LocatorInterface, ShardingInterface
         return array_values($buckets);
     }
 
+    public function getShard(Topology $topology, string $class, array $data): ?int
+    {
+        $key = (is_a($class, ShardingInterface::class, true) ? $class : self::class)::getKey($data);
+
+        if ($key !== null) {
+            if (((string) (int) $key) === $key) {
+                $key = (int) $key;
+            }
+            if (!is_int($key)) {
+                $key = abs(crc32(strval($key)));
+            }
+            return $key % $topology->shards;
+        }
+
+        return null;
+    }
+
     public function getTopology(string $class, string $status = Topology::READY_STATUS): ?Topology
     {
         if (!$this->database->schema->getClassModel($class)) {
@@ -154,40 +183,5 @@ class Locator implements LocatorInterface, ShardingInterface
         }
 
         return array_pop($topologies);
-    }
-
-    public function getShard(Topology $topology, string $class, array $data): ?int
-    {
-        $key = (is_a($class, ShardingInterface::class, true) ? $class : self::class)::getKey($data);
-
-        if ($key !== null) {
-            if (((string) (int) $key) === $key) {
-                $key = (int) $key;
-            }
-            if (!is_int($key)) {
-                $key = abs(crc32(strval($key)));
-            }
-            return $key % $topology->shards;
-        }
-
-        return null;
-    }
-
-    public function generateBuckets(Topology $topology): array
-    {
-        $buckets = [];
-
-        foreach (range(1, $topology->shards) as $shard) {
-            foreach (range(0, $topology->replicas) as $replica) {
-                $buckets[] = $this->database->findOrCreate(Bucket::class, [
-                    'name' => $topology->name,
-                    'version' => $topology->version,
-                    'shard' => $shard - 1,
-                    'replica' => $replica,
-                ]);
-            }
-        }
-
-        return $buckets;
     }
 }

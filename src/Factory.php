@@ -15,6 +15,15 @@ class Factory
         $this->afterCreate[] = $hook;
     }
 
+    public function excludeFromIdentityMap(string $class)
+    {
+        $this->excludedFromIdentityMap[$class] = $class;
+
+        if (array_key_exists($class, $this->identityMap)) {
+            unset($this->identityMap[$class]);
+        }
+    }
+
     public function getInstance(string $class, array|object $data): object
     {
         if (is_object($data)) {
@@ -54,14 +63,5 @@ class Factory
         array_map(fn ($callback) => $callback($instance), $this->afterCreate);
 
         return $instance;
-    }
-
-    public function excludeFromIdentityMap(string $class)
-    {
-        $this->excludedFromIdentityMap[$class] = $class;
-
-        if (array_key_exists($class, $this->identityMap)) {
-            unset($this->identityMap[$class]);
-        }
     }
 }

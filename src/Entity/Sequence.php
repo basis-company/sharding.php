@@ -50,11 +50,6 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
         ];
     }
 
-    public static function getSegment(): string
-    {
-        return 'sequences';
-    }
-
     public static function getNext(Database $database, string $name): int
     {
         $sequence = $database->findOrCreate(self::class, [
@@ -82,5 +77,10 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
         }
 
         return $sequence->next;
+    }
+
+    public static function getSegment(): string
+    {
+        return 'sequences';
     }
 }

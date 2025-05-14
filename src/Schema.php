@@ -46,6 +46,11 @@ class Schema
         return $this->getSegmentByName($this->classSegment[$class]);
     }
 
+    public function getClassTable(string $class): string
+    {
+        return $this->getSegmentByName($this->classSegment[$class])->getTable($class);
+    }
+
     public function getSegmentByName(string $name, bool $create = true): Segment
     {
         if (!$this->hasSegment($name)) {
@@ -56,11 +61,6 @@ class Schema
             $this->segments[$name] = new Segment($parts[0], $parts[1] ?? '');
         }
         return $this->segments[$name];
-    }
-
-    public function getClassTable(string $class): string
-    {
-        return $this->getSegmentByName($this->classSegment[$class])->getTable($class);
     }
 
     public function getTableClass(string $table): string

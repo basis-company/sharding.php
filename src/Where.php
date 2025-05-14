@@ -14,17 +14,17 @@ class Where
     ) {
     }
 
-    public function isGreaterThan(int|string $value): Select
-    {
-        $this->isGreaterThan = $value;
-        return $this->select;
-    }
-
     /**
      * @return Where[]
      */
     public function getConditions(): array
     {
         return array_merge([$this], $this->parent ? $this->parent->getConditions() : []);
+    }
+
+    public function isGreaterThan(int|string $value): Select
+    {
+        $this->isGreaterThan = $value;
+        return $this->select;
     }
 }

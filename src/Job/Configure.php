@@ -17,14 +17,14 @@ class Configure implements Job
     ) {
     }
 
-    public function shards(int $shards): self
-    {
-        return new self($this->class, $shards, $this->replicas);
-    }
-
     public function replicas(int $replicas): self
     {
         return new self($this->class, $this->shards, $replicas);
+    }
+
+    public function shards(int $shards): self
+    {
+        return new self($this->class, $shards, $this->replicas);
     }
 
     public function __invoke(Database $database)

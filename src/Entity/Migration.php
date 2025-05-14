@@ -24,15 +24,15 @@ class Migration implements Domain, Indexing, Segment
         return 'sharding';
     }
 
-    public static function getSegment(): string
-    {
-        return 'migrations';
-    }
-
     public static function getIndexes(): array
     {
         return [
             new UniqueIndex(['name', 'version']),
         ];
+    }
+
+    public static function getSegment(): string
+    {
+        return 'migrations';
     }
 }
