@@ -15,6 +15,7 @@ use Ramsey\Uuid\Uuid;
 
 class Database implements Crud
 {
+    public readonly Factory $factory;
     public readonly Locator $locator;
     public readonly Schema $schema;
     private array $drivers = [];
@@ -23,6 +24,7 @@ class Database implements Crud
         public readonly Driver $driver,
         ?Schema $schema = null,
     ) {
+        $this->factory = new Factory($this);
         $this->schema = $schema ?? new Schema();
         $this->locator = new Locator($this);
 
@@ -44,25 +46,6 @@ class Database implements Crud
             ->using(function (Driver $driver, string $table) use ($data) {
                 return [$driver->create($table, $data)];
             });
-    }
-
-    public function createInstance(string $class, array|object $row): object
-    {
-        if (is_object($row)) {
-            $row = get_object_vars($row);
-        }
-        if ($class && class_exists($class)) {
-            if (method_exists($class, '__construct')) {
-                return new $class(...array_values($row));
-            } else {
-                $instance = new $class();
-                foreach ($row as $key => $value) {
-                    $instance->$key = $value;
-                }
-                return $instance;
-            }
-        }
-        return (object) $row;
     }
 
     public function delete(string|object $class, array|int|null|string $id = null): ?object
@@ -166,14 +149,25 @@ class Database implements Crud
 
     public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
     {
+        $instance = null;
         if (is_object($class)) {
+            $instance = $class;
             [$class, $id, $data] = [get_class($class), $class->id, $id];
         }
-        return $this->fetchOne($class)
+        $next = $this->fetchOne($class)
             ->from(['id' => $id], writable: true, multiple: true)
             ->using(function (Driver $driver, string $table) use ($id, $data) {
                 $row = $driver->update($table, $id, $data);
                 return $row ? [$row] : [];
             });
+
+        if ($instance) {
+            foreach ($next as $k => $v) {
+                $instance->$k = $v;
+            }
+            return $instance;
+        }
+
+        return $next;
     }
 }

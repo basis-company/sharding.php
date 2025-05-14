@@ -58,9 +58,9 @@ class Fetch
             }
             $driver = $this->database->getStorageDriver($bucket->storage);
             foreach ($callback($driver, $table) as $row) {
-                $rows[] = $this->database->createInstance(
+                $rows[] = $this->database->factory->getInstance(
                     class: $tableClass ?: $this->class,
-                    row: $row,
+                    data: $row,
                 );
                 if ($this->first) {
                     return array_pop($rows);

@@ -86,7 +86,7 @@ class Locator implements LocatorInterface, ShardingInterface
             $row = $this->database->driver->findOrFail($this->bucketsTable, [
                 'id' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME]
             ]);
-            return [$this->database->createInstance(Bucket::class, $row)];
+            return [$this->database->factory->getInstance(Bucket::class, $row)];
         }
 
         if (class_exists($class)) {
@@ -102,7 +102,7 @@ class Locator implements LocatorInterface, ShardingInterface
         }
 
         $buckets = $this->database->driver->find($this->bucketsTable, compact('name'));
-        $buckets = array_map(fn ($data) => $this->database->createInstance(Bucket::class, $data), $buckets);
+        $buckets = array_map(fn ($data) => $this->database->factory->getInstance(Bucket::class, $data), $buckets);
 
         $topology = $this->getTopology($class);
         if ($topology) {
