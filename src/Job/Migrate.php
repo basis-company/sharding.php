@@ -98,6 +98,7 @@ class Migrate implements Job
                         'table' => $migration->table + 1,
                         'key' => "",
                     ]);
+                    continue;
                 } elseif (array_key_exists($migration->bucket + 1, $currentBuckets)) {
                     // next bucket
                     $migration = $database->update($migration, [
@@ -105,11 +106,11 @@ class Migrate implements Job
                         'table' => 0,
                         'key' => "",
                     ]);
+                    continue;
                 } else {
                     // migration complete
                     break;
                 }
-                continue;
             }
 
             $sharded = [];
