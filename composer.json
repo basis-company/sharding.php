@@ -5,17 +5,17 @@
     "type": "library",
     "license": "MIT",
     "require": {
+        "doctrine/dbal": "^4.2",
+        "nesbot/carbon": "^3.9",
         "php": ">=8.0",
         "psr/cache": "^2.0",
         "ramsey/uuid": "^4.7",
-        "nesbot/carbon": "^3.9",
-        "symfony/cache": "^7.2"
-    },
-    "require-dev": {
-        "doctrine/dbal": "^4.2.3",
-        "phpunit/phpunit": "^12",
+        "symfony/cache": "^7.2",
         "tarantool/client": ">=0.10.1",
         "tarantool/mapper": "^6.4.5"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12"
     },
     "autoload": {
         "psr-4": {
