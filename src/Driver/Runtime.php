@@ -21,7 +21,7 @@ class Runtime implements Driver
     public function ackChanges(array $changes): void
     {
         foreach ($changes as $change) {
-            $this->delete(Change::getSpaceName(), $change->id);
+            $this->delete(Change::TABLE, $change->id);
         }
     }
 
@@ -91,8 +91,8 @@ class Runtime implements Driver
     public function getChanges(string $listener = '', int $limit = 100): array
     {
         $changes = [];
-        if (array_key_exists(Change::getSpaceName(), $this->data)) {
-            foreach ($this->data[Change::getSpaceName()] as $change) {
+        if (array_key_exists(Change::TABLE, $this->data)) {
+            foreach ($this->data[Change::TABLE] as $change) {
                 if (!$listener || $change['listener'] == $listener) {
                     $changes[] = new Change(...array_values($change));
                     if (count($changes) >= $limit) {
@@ -104,7 +104,7 @@ class Runtime implements Driver
         return $changes;
     }
 
-    public function getDefaultPropetryValue(string $type)
+    public function getDefaultValue(string $type)
     {
         switch ($type) {
             case 'int':
@@ -128,8 +128,8 @@ class Runtime implements Driver
         }
 
         $listeners = [];
-        if (array_key_exists(Subscription::getSpaceName(), $this->data)) {
-            foreach ($this->data[Subscription::getSpaceName()] as $subscription) {
+        if (array_key_exists(Subscription::TABLE, $this->data)) {
+            foreach ($this->data[Subscription::TABLE] as $subscription) {
                 if (in_array($subscription['table'], [$table, '*'])) {
                     $listeners[$subscription['listener']] = true;
                 }
@@ -157,7 +157,7 @@ class Runtime implements Driver
                 if (array_key_exists($property->name, $row)) {
                     $sorted[$property->name] = $row[$property->name];
                 } else {
-                    $sorted[$property->name] = $this->getDefaultPropetryValue($property->type);
+                    $sorted[$property->name] = $this->getDefaultValue($property->type);
                 }
             }
             $rows[$i] = $sorted;
@@ -176,21 +176,21 @@ class Runtime implements Driver
         if (strpos($table, 'sharding_') === 0) {
             return;
         }
-        if (array_key_exists(Subscription::getSpaceName(), $this->data)) {
+        if (array_key_exists(Subscription::TABLE, $this->data)) {
             $listeners = [];
-            foreach ($this->data[Subscription::getSpaceName()] as $subscription) {
+            foreach ($this->data[Subscription::TABLE] as $subscription) {
                 if (in_array($subscription['table'], [$table, '*'])) {
                     $listeners[$subscription['listener']] = true;
                 }
             }
             foreach (array_keys($listeners) as $listener) {
-                if (!array_key_exists(Change::getSpaceName(), $this->data)) {
-                    $model = new Model(Change::class, Change::getSpaceName());
+                if (!array_key_exists(Change::TABLE, $this->data)) {
+                    $model = new Model(Change::class, Change::TABLE);
                     $this->data[$model->table] = [];
                     $this->models[$model->table] = $model;
                 }
-                $this->data[Change::getSpaceName()][] = [
-                    'id' => count($this->data[Change::getSpaceName()]) + 1,
+                $this->data[Change::TABLE][] = [
+                    'id' => count($this->data[Change::TABLE]) + 1,
                     'listener' => $listener,
                     'table' => $table,
                     'action' => $action,
@@ -203,14 +203,14 @@ class Runtime implements Driver
 
     public function registerChanges(string $table, string $listener): void
     {
-        if (!$this->hasTable(Subscription::getSpaceName())) {
-            $model = new Model(Subscription::class, Subscription::getSpaceName());
+        if (!$this->hasTable(Subscription::TABLE)) {
+            $model = new Model(Subscription::class, Subscription::TABLE);
             $this->data[$model->table] = [];
             $this->models[$model->table] = $model;
         }
 
-        $this->data[Subscription::getSpaceName()][] = [
-            'id' => count($this->data[Subscription::getSpaceName()]) + 1,
+        $this->data[Subscription::TABLE][] = [
+            'id' => count($this->data[Subscription::TABLE]) + 1,
             'listener' => $listener,
             'table' => $table,
         ];

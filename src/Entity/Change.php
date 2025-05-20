@@ -7,10 +7,12 @@ use Basis\Sharding\Schema\Index;
 
 class Change implements Indexing
 {
+    public const TABLE = 'sharding_change';
+
     public function __construct(
         public int $id,
         public string $listener,
-        public string $table,
+        public string $tablename,
         public string $action,
         public array $data,
         public array $context,
@@ -22,10 +24,5 @@ class Change implements Indexing
         return [
             new Index(["listener"]),
         ];
-    }
-
-    public static function getSpaceName(): string
-    {
-        return "sharding_change";
     }
 }

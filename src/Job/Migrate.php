@@ -144,17 +144,17 @@ class Migrate implements Job
             if (count($changes)) {
                 $sharded = [];
                 foreach ($changes as $change) {
-                    $class = $classes[array_search($change->table, $tables)];
+                    $class = $classes[array_search($change->tablename, $tables)];
                     $row = (array) $change->data;
                     $shard = $database->locator->getShard($nextTopology, $class, $row);
                     if (!array_key_exists($shard, $sharded)) {
                         $sharded[$shard] = [];
                     }
-                    if (!array_key_exists($change->table, $sharded[$shard])) {
-                        $sharded[$shard][$change->table] = [];
+                    if (!array_key_exists($change->tablename, $sharded[$shard])) {
+                        $sharded[$shard][$change->tablename] = [];
                     }
 
-                    $sharded[$shard][$change->table][] = $change->data;
+                    $sharded[$shard][$change->tablename][] = $change->data;
                 }
 
                 foreach ($nextBuckets as $nextBucket) {
@@ -162,7 +162,7 @@ class Migrate implements Job
                         $driver = $database->getStorageDriver($nextBucket->storage);
                         foreach ($sharded[$nextBucket->shard] as $table => $rows) {
                             foreach ($rows as $row) {
-                                $result = $driver->update($table, $row['id'], $row);
+                                $driver->update($table, $row['id'], $row);
                             }
                         }
                     }

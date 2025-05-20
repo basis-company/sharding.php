@@ -57,19 +57,19 @@ class Replicate implements Job
             }
             foreach ($changes as $change) {
                 assert($change instanceof Change);
-                if (!array_key_exists($change->table, $tableStorages)) {
+                if (!array_key_exists($change->tablename, $tableStorages)) {
                     throw new Exception("Replication target not found");
                 }
-                foreach ($tableStorages[$change->table] as $destination) {
+                foreach ($tableStorages[$change->tablename] as $destination) {
                     switch ($change->action) {
                         case 'create':
-                            $destination->findOrCreate($change->table, ['id' => $change->data['id']], $change->data);
+                            $destination->findOrCreate($change->tablename, ['id' => $change->data['id']], $change->data);
                             break;
                         case 'update':
-                            $destination->update($change->table, $change->data['id'], $change->data);
+                            $destination->update($change->tablename, $change->data['id'], $change->data);
                             break;
                         case 'delete':
-                            $destination->delete($change->table, $change->data['id']);
+                            $destination->delete($change->tablename, $change->data['id']);
                             break;
                         default:
                             throw new \Exception('Unknown action');

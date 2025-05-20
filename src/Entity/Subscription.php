@@ -7,22 +7,19 @@ use Basis\Sharding\Schema\Index;
 
 class Subscription implements Indexing
 {
+    public const TABLE = 'sharding_subscription';
+
     public function __construct(
         public int $id,
         public string $listener,
-        public string $table,
+        public string $tablename,
     ) {
-    }
-
-    public static function getSpaceName(): string
-    {
-        return "sharding_subscription";
     }
 
     public static function getIndexes(): array
     {
         return [
-            new Index(["table"]),
+            new Index(["tablename"]),
         ];
     }
 }

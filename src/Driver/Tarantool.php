@@ -29,7 +29,7 @@ class Tarantool implements Driver
 
     public function ackChanges(array $changes): void
     {
-        array_map(fn ($change) => $this->mapper->delete(Change::getSpaceName(), $change), $changes);
+        array_map(fn ($change) => $this->mapper->delete(Change::TABLE, $change), $changes);
     }
 
     public function create(string $table, array $data): object
@@ -119,7 +119,7 @@ class Tarantool implements Driver
 
     public function getChanges(string $listener = '', int $limit = 100): array
     {
-        if (!$this->hasTable(Subscription::getSpaceName())) {
+        if (!$this->hasTable(Subscription::TABLE)) {
             return [];
         }
         if ($listener) {
@@ -128,7 +128,7 @@ class Tarantool implements Driver
             $criteria = Criteria::allIterator();
         }
 
-        return $this->mapper->find(Change::getSpaceName(), $criteria->andLimit($limit));
+        return $this->mapper->find(Change::TABLE, $criteria->andLimit($limit));
     }
 
     public function getDsn(): string
@@ -138,13 +138,13 @@ class Tarantool implements Driver
 
     public function getListeners(string $table): array
     {
-        if (!$this->hasTable(Subscription::getSpaceName())) {
+        if (!$this->hasTable(Subscription::TABLE)) {
             return [];
         }
 
         $listeners = [];
-        foreach ($this->find(Subscription::getSpaceName()) as $subscription) {
-            if (in_array($subscription->table, [$table, '*'])) {
+        foreach ($this->find(Subscription::TABLE) as $subscription) {
+            if (in_array($subscription->tablename, [$table, '*'])) {
                 $listeners[$subscription->listener] = $subscription->listener;
             }
         }
@@ -174,7 +174,7 @@ class Tarantool implements Driver
 
     public function hasListeners(string $table): bool
     {
-        return count($this->find(Subscription::getSpaceName(), ['table' => $table])) > 0;
+        return count($this->find(Subscription::TABLE, ['table' => $table])) > 0;
     }
 
     public function hasTable(string $table): bool
@@ -223,14 +223,14 @@ class Tarantool implements Driver
 
     public function registerChanges(string $table, string $listener): void
     {
-        if (!$this->hasTable(Subscription::getSpaceName())) {
-            $this->syncModel(new Model(Change::class, Change::getSpaceName()));
-            $this->syncModel(new Model(Subscription::class, Subscription::getSpaceName()));
+        if (!$this->hasTable(Subscription::TABLE)) {
+            $this->syncModel(new Model(Change::class, Change::TABLE));
+            $this->syncModel(new Model(Subscription::class, Subscription::TABLE));
         }
 
-        $this->mapper->create(Subscription::getSpaceName(), [
+        $this->mapper->create(Subscription::TABLE, [
             'listener' => $listener,
-            'table' => $table,
+            'tablename' => $table,
         ]);
     }
 
