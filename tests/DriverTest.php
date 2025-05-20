@@ -3,25 +3,15 @@
 namespace Basis\Sharding\Test;
 
 use Basis\Sharding\Database;
-use Basis\Sharding\Driver\Runtime;
-use Basis\Sharding\Driver\Tarantool;
 use Basis\Sharding\Entity\Change;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Test\Entity\User;
-use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 
 class DriverTest extends TestCase
 {
-    public static function provideDrivers(): array
-    {
-        return [
-            'tarantool' => [new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"))],
-            'runtime' => [new Runtime()],
-        ];
-    }
-
-    #[DataProvider('provideDrivers')]
+    #[DataProviderExternal(TestProvider::class, 'drivers')]
     public function testChanges(Driver $driver)
     {
         $db = new Database($driver->reset());
@@ -37,24 +27,25 @@ class DriverTest extends TestCase
         $driver->setContext(['access' => 1]);
 
         $nekufa = $db->create('test_user', ['name' => 'Dmitry Krokhin']);
-        $this->assertCount(1, $driver->find(Change::getSpaceName()));
+        $this->assertCount(1, $driver->find(Change::TABLE));
         $this->assertCount(1, $driver->find('test_user'));
         $this->assertCount(1, $driver->getChanges('notifier'));
 
         [$change] = $driver->getChanges('notifier');
+        $this->assertNotSame(0, $change->id);
         $this->assertEquals($nekufa->id, $change->data['id']);
-        $this->assertEquals('test_user', $change->table);
+        $this->assertEquals('test_user', $change->tablename);
         $this->assertEquals('create', $change->action);
         $this->assertEquals(['access' => 1], $change->context);
 
         $driver->ackChanges([$change]);
         $this->assertCount(0, $driver->getChanges('notifier'));
-        $this->assertCount(0, $driver->find(Change::getSpaceName()));
+        $this->assertCount(0, $driver->find(Change::TABLE));
 
         $db->delete($nekufa);
-        $this->assertCount(1, $driver->find(Change::getSpaceName()));
+        $this->assertCount(1, $driver->find(Change::TABLE));
         [$change] = $driver->getChanges('notifier');
-        $this->assertEquals('test_user', $change->table);
+        $this->assertEquals('test_user', $change->tablename);
         $this->assertEquals('delete', $change->action);
         $this->assertEquals(['access' => 1], $change->context);
         $driver->ackChanges([$change]);
@@ -65,7 +56,7 @@ class DriverTest extends TestCase
         $driver->registerChanges('*', "notifier");
 
         $nekufa = $db->create('test_user', ['name' => 'Dmitry Krokhin']);
-        $this->assertCount(2, $driver->find(Change::getSpaceName()));
+        $this->assertCount(2, $driver->find(Change::TABLE));
         $this->assertCount(2, $driver->getChanges());
         $this->assertCount(1, $driver->getChanges('event'));
         $this->assertCount(1, $driver->getChanges('notifier'));
@@ -75,23 +66,24 @@ class DriverTest extends TestCase
         // no changes
         $nekufa2 = $driver->findOrCreate('test_user', ['id' => $nekufa->id], ['name' => 'Dmitry Krokhin']);
         $this->assertSame($nekufa->id, $nekufa2->id);
-        $this->assertCount(0, $driver->find(Change::getSpaceName()));
+        $this->assertCount(0, $driver->find(Change::TABLE));
         $this->assertCount(0, $driver->getChanges());
         $driver->delete('test_user', $nekufa->id);
         $driver->ackChanges($driver->getChanges());
 
         // created
         $nekufa = $driver->findOrCreate('test_user', ['id' => 1], ['id' => 1, 'name' => 'Dmitry Krokhin']);
-        $this->assertCount(2, $driver->find(Change::getSpaceName()));
+        $this->assertCount(2, $driver->find(Change::TABLE));
         $this->assertCount(2, $driver->getChanges());
         $this->assertCount(1, $driver->getChanges('event'));
         $this->assertCount(1, $driver->getChanges('notifier'));
         $this->assertEquals('create', $driver->getChanges()[0]->action);
         $driver->ackChanges($driver->getChanges());
+        $this->assertCount(0, $driver->find(Change::TABLE));
 
         // update
         $driver->update('test_user', $nekufa->id, ['name' => 'tester']);
-        $this->assertCount(2, $driver->find(Change::getSpaceName()));
+        $this->assertCount(2, $driver->find(Change::TABLE));
         $this->assertCount(2, $driver->getChanges());
         $this->assertCount(1, $driver->getChanges('event'));
         $this->assertCount(1, $driver->getChanges('notifier'));

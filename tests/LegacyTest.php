@@ -12,20 +12,12 @@ use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Schema\Legacy;
 use Basis\Sharding\Test\Entity\StageCorrection;
 use Basis\Sharding\Test\Repository\StageCorrection as StageCorrectionRepository;
-use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 
 class LegacyTest extends TestCase
 {
-    public static function provideDrivers(): array
-    {
-        return [
-            'tarantool' => [new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"))],
-            'runtime' => [new Runtime()],
-        ];
-    }
-
-    #[DataProvider('provideDrivers')]
+    #[DataProviderExternal(TestProvider::class, 'drivers')]
     public function test(Driver $driver)
     {
         Legacy::initialize();

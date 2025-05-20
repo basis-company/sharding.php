@@ -103,25 +103,25 @@ class ShardingTest extends TestCase
         $this->assertCount(0, $database->getStorageDriver($destination->storage)->find('telemetry_activity', []));
         $this->assertCount(0, $database->find(Activity::class));
 
-        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::TABLE));
         $database->dispatch(new Replicate($source->storage, limit:1));
-        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::TABLE));
         $this->assertCount(1, $database->getStorageDriver($destination->storage)->find('telemetry_activity'));
 
         $database->update($activity, ['type' => 27]);
-        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::TABLE));
 
         $database->dispatch(new Replicate($source->storage, limit:1));
-        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::TABLE));
         $this->assertCount(1, $database->getStorageDriver($destination->storage)->find('telemetry_activity'));
         [$replicated] = $database->getStorageDriver($destination->storage)->find('telemetry_activity');
         $this->assertSame($replicated['type'], 27);
 
         $database->delete($activity);
-        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::TABLE));
 
         $database->dispatch(new Replicate($source->storage, limit:1));
-        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::getSpaceName()));
+        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::TABLE));
         $this->assertCount(0, $database->getStorageDriver($destination->storage)->find('telemetry_activity'));
     }
 

@@ -2,7 +2,6 @@
 
 namespace Basis\Sharding\Test;
 
-use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Driver\Tarantool;
 use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Storage;
@@ -14,20 +13,12 @@ use Basis\Sharding\Schema\Model;
 use Basis\Sharding\Test\Entity\Document;
 use Basis\Sharding\Test\Entity\MapperLogin;
 use Basis\Sharding\Test\Entity\User;
-use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 
 class DatabaseTest extends TestCase
 {
-    public static function provideDrivers(): array
-    {
-        return [
-            'tarantool' => [new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"))],
-            'runtime' => [new Runtime()],
-        ];
-    }
-
-    #[DataProvider('provideDrivers')]
+    #[DataProviderExternal(TestProvider::class, 'drivers')]
     public function testStrings(Driver $driver)
     {
         $database = new Database($driver->reset());
@@ -44,7 +35,7 @@ class DatabaseTest extends TestCase
         $this->assertCount(3, $database->find(Sequence::class));
     }
 
-    #[DataProvider('provideDrivers')]
+    #[DataProviderExternal(TestProvider::class, 'drivers')]
     public function testClassCasting(Driver $driver)
     {
         $database = new Database($driver->reset());
@@ -96,7 +87,7 @@ class DatabaseTest extends TestCase
         $this->assertCount(1, $database->find(MapperLogin::class));
     }
 
-    #[DataProvider('provideDrivers')]
+    #[DataProviderExternal(TestProvider::class, 'drivers')]
     public function testCrud(Driver $driver)
     {
         $database = new Database($driver->reset());
@@ -122,7 +113,7 @@ class DatabaseTest extends TestCase
         $this->assertCount(2, $database->find(User::class));
     }
 
-    #[DataProvider('provideDrivers')]
+    #[DataProviderExternal(TestProvider::class, 'drivers')]
     public function testTarantool(Driver $driver)
     {
         $schema = new Schema();

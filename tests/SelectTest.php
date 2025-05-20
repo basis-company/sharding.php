@@ -3,24 +3,14 @@
 namespace Basis\Sharding\Test;
 
 use Basis\Sharding\Database;
-use Basis\Sharding\Driver\Runtime;
-use Basis\Sharding\Driver\Tarantool;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Test\Entity\Post;
-use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 
 class SelectTest extends TestCase
 {
-    public static function provideDrivers(): array
-    {
-        return [
-            'tarantool' => [new Tarantool("tcp://" . getenv("TARANTOOL_HOST") . ":" . getenv("TARANTOOL_PORT"))],
-            'runtime' => [new Runtime()],
-        ];
-    }
-
-    #[DataProvider('provideDrivers')]
+    #[DataProviderExternal(TestProvider::class, 'drivers')]
     public function testChanges(Driver $driver)
     {
         $database = new Database($driver->reset());
