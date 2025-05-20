@@ -13,4 +13,5 @@ jobs:
         with:
           php_version: ${{ matrix.php }}
       - run: docker compose up -d --quiet-pull
+      - run: dockerize -wait tcp://127.0.0.1:15432 -timeout 30s
       - run: vendor/bin/phpunit tests --no-coverage
