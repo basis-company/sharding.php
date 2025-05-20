@@ -7,11 +7,10 @@
     "require": {
         "doctrine/dbal": "^4.2",
         "nesbot/carbon": "^3.9",
-        "php": ">=8.0",
+        "php": ">=8.3",
         "psr/cache": "^2.0",
         "ramsey/uuid": "^4.7",
         "symfony/cache": "^7.2",
-        "tarantool/client": ">=0.10.1",
         "tarantool/mapper": "^6.4.5"
     },
     "require-dev": {

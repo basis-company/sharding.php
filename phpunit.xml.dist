@@ -21,10 +21,11 @@
         <ini name="display_startup_errors" value="On" />
         <ini name="error_reporting" value="E_ALL" />
 
-        <env name="POSTGRES_USER" value="postgres" />
-        <env name="POSTGRES_PASSWORD" value="root" />
         <env name="POSTGRES_HOST" value="127.0.0.1" />
         <env name="POSTGRES_PORT" value="15432" />
+        <env name="POSTGRES_DATABASE" value="postgres" />
+        <env name="POSTGRES_USER" value="postgres" />
+        <env name="POSTGRES_PASSWORD" value="root" />
 
         <env name="TARANTOOL_HOST" value="127.0.0.1" />
         <env name="TARANTOOL_PORT" value="13301" />

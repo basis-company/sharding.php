@@ -27,7 +27,7 @@ class StageCorrection extends Entity
     * @var integer
     * @required
     */
-    public $end;
+    public $ends;
 
     /**
     * @var integer

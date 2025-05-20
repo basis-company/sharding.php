@@ -3,6 +3,7 @@
 namespace Basis\Sharding\Entity;
 
 use Basis\Sharding\Database;
+use Basis\Sharding\Driver\Doctrine;
 use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Driver\Tarantool;
 use Basis\Sharding\Interface\Bootstrap;
@@ -62,16 +63,27 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
         [$bucket] = $database->getBuckets(Sequence::class, writable: true);
         $driver = $database->getStorageDriver($bucket->storage);
 
-        if ($driver instanceof Tarantool) {
+        if ($driver instanceof Runtime) {
+            $driver->update($database->schema->getClassTable(Sequence::class), $sequence->id, [
+                'next' => ++$sequence->next
+            ]);
+        } elseif ($driver instanceof Doctrine) {
+            $sequence->next = $driver->getConnection()->transactional(function () use ($driver, $database, $sequence) {
+                $driver->getConnection()->executeStatement(
+                    "update " . $database->schema->getClassTable(Sequence::class) . " set next = next + 1 where id = ?",
+                    [$sequence->id]
+                );
+                return $driver->getConnection()->fetchOne(
+                    "select next from " . $database->schema->getClassTable(Sequence::class) . " where id = ?",
+                    [$sequence->id]
+                );
+            });
+        } elseif ($driver instanceof Tarantool) {
             $driver->getMapper()->update(
                 $database->schema->getClassTable(Sequence::class),
                 $sequence,
                 Operations::add('next', 1)
             );
-        } elseif ($driver instanceof Runtime) {
-            $driver->update($database->schema->getClassTable(Sequence::class), $sequence->id, [
-                'next' => ++$sequence->next
-            ]);
         } else {
             throw new \Exception('Unsupported driver');
         }
