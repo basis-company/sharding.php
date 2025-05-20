@@ -4,7 +4,7 @@
 
 Sharding is a php library designed to handle domain data that is split into segments, where each segment represents a collection of entities. The library provides mechanisms for persisting these segments across distributed storage systems using a bucket-based approach.
 
-Check out the [documentation](https://deepwiki.com/basis-company/sharding.php).
+Check out the [documentation](https://deepwiki.com/basis-company/sharding.php) or `tests` folder.
 
 ## Key Concepts
 
