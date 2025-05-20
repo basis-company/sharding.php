@@ -1,4 +1,9 @@
 # A Sharding Library for PHP
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/basis-company/sharding.php)
+[![Latest Version](https://img.shields.io/github/release/basis-company/sharding.php.svg)](https://github.com/basis-company/sharding.php/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Testing](https://github.com/basis-company/sharding.php/actions/workflows/tests.yml/badge.svg)](https://github.com/basis-company/sharding.php/actions/workflows/tests.yml)
+[![Total Downloads](https://img.shields.io/packagist/dt/basis-company/sharding.svg)](https://packagist.org/packages/basis-company/sharding)
 
 ## Overview
 
