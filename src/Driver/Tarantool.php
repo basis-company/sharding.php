@@ -275,6 +275,11 @@ class Tarantool implements Driver
 
     public function syncModel(Model $model, ?Bucket $bucket = null)
     {
+        try {
+            $this->mapper->evaluate("box.session.su('admin')");
+        } catch (Exception) {
+        }
+
         $present = $this->mapper->hasSpace($model->getTable($bucket));
         if ($present) {
             $space = $this->mapper->getSpace($model->getTable($bucket));
