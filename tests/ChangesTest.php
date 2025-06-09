@@ -16,6 +16,8 @@ class ChangesTest extends TestCase
     {
         $db = new Database($driver->reset());
         $db->schema->register(User::class);
+        $db->setContext(fn() => ['access' => 1]);
+
         $nekufa = $db->create(User::class, ['name' => 'Dmitry Krokhin']);
 
         $this->assertCount(1, $driver->find('test_user'));
@@ -24,7 +26,6 @@ class ChangesTest extends TestCase
         $this->assertCount(0, $driver->find('test_user'));
 
         $driver->registerChanges('test_user', 'notifier');
-        $driver->setContext(fn() => ['access' => 1]);
 
         $nekufa = $db->create('test_user', ['name' => 'Dmitry Krokhin']);
         $this->assertCount(1, $driver->find(Change::TABLE));

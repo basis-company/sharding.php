@@ -18,6 +18,7 @@ class Database implements Crud
 {
     public readonly Locator $locator;
     private array $drivers = [];
+    private $context = [];
 
     public function __construct(
         public readonly Driver $driver,
@@ -32,6 +33,7 @@ class Database implements Crud
                 $driver->syncSchema($this, new Bucket(0, $segment, 0, 0, 0, 1, 0));
             }
         }
+        $driver->setContext($this->getContext(...));
     }
 
     public function cache(string $method, array $arguments, callable $callback)
@@ -152,6 +154,11 @@ class Database implements Crud
         return $this->locator->getBuckets($class, $data, $writable, $multiple);
     }
 
+    public function getContext(): array
+    {
+        return (is_callable($this->context) ? ($this->context)() : $this->context) ?: [];
+    }
+
     public function getStorageDriver(int $storageId): Driver
     {
         if ($storageId == 1) {
@@ -160,11 +167,16 @@ class Database implements Crud
 
         if (!count($this->drivers)) {
             foreach ($this->find(Storage::class) as $storage) {
-                $this->drivers[$storage->id] = $storageId == 1 ? $this->driver : $storage->createDriver();
+                $this->drivers[$storage->id] = $storageId == 1 ? $this->driver : $storage->createDriver($this);
+                $this->drivers[$storage->id]->setContext($this->getContext(...));
             }
         }
 
         return $this->drivers[$storageId];
+    }
+    public function setContext(array|callable $context): void
+    {
+        $this->context = $context;
     }
 
     public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
