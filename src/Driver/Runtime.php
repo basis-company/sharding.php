@@ -16,7 +16,7 @@ class Runtime implements Driver
 {
     public array $data = [];
     public array $models = [];
-    public array $context = [];
+    private $context = [];
 
     public function ackChanges(array $changes): void
     {
@@ -195,7 +195,7 @@ class Runtime implements Driver
                     'table' => $table,
                     'action' => $action,
                     'data' => $data,
-                    'context' => $this->context,
+                    'context' => is_callable($this->context) ? call_user_func($this->context) : $this->context,
                 ];
             }
         }
@@ -246,7 +246,7 @@ class Runtime implements Driver
         });
     }
 
-    public function setContext(array $context): void
+    public function setContext(array|callable $context): void
     {
         $this->context = $context;
     }

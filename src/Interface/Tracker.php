@@ -8,5 +8,5 @@ interface Tracker
     public function getChanges(string $listener = '', int $limit = 100): array;
     public function getListeners(string $table): array;
     public function registerChanges(string $table, string $listener): void;
-    public function setContext(array $context): void;
+    public function setContext(array|callable $context): void;
 }

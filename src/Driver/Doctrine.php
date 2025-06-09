@@ -11,29 +11,19 @@ use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Schema\Model;
 use Basis\Sharding\Select;
-use Cycle\Database\Config\MySQL\TcpConnectionConfig as MySQLTcpConnectionConfig;
-use Cycle\Database\Config\MySQLDriverConfig;
-use Cycle\Database\Config\Postgres\TcpConnectionConfig as PostgresTcpConnectionConfig;
-use Cycle\Database\Config\PostgresDriverConfig;
-use Cycle\Database\Database;
-use Cycle\Database\Driver\MySQL\MySQLDriver;
-use Cycle\Database\Driver\Postgres\PostgresDriver;
-use Cycle\Database\Injection\Expression;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Tools\DsnParser;
 use Exception;
-use PHPUnit\Event\Subscriber;
 use ReflectionProperty;
 
 class Doctrine implements Driver
 {
     public static int $x = 0;
     private ?Connection $connection = null;
-    private array $context = [];
+    private $context = [];
 
     public function __construct(private readonly string $dsn)
     {
@@ -61,7 +51,7 @@ class Doctrine implements Driver
                 $this->getConnection()->delete($table, ['id' => $id]);
                 foreach ($this->getListeners($table) as $listener) {
                     $this->getConnection()->insert(Change::TABLE, [
-                        'context' => json_encode($this->context),
+                        'context' => json_encode(is_callable($this->context) ? call_user_func($this->context) : $this->context),
                         'listener' => $listener,
                         'tablename' => $table,
                         'action' => 'delete',
@@ -230,7 +220,7 @@ class Doctrine implements Driver
                 $result[] = (object) $row;
                 foreach ($listeners as $listener) {
                     $this->getConnection()->insert(Change::TABLE, [
-                        'context' => json_encode($this->context),
+                        'context' => json_encode(is_callable($this->context) ? call_user_func($this->context) : $this->context),
                         'listener' => $listener,
                         'tablename' => $table,
                         'action' => 'create',
@@ -300,7 +290,7 @@ class Doctrine implements Driver
         });
     }
 
-    public function setContext(array $context): void
+    public function setContext(array|callable $context): void
     {
         $this->context = $context;
     }
@@ -373,7 +363,7 @@ class Doctrine implements Driver
             $row = $this->findOne($table, ['id' => $id]);
             foreach ($this->getListeners($table) as $listener) {
                 $this->getConnection()->insert(Change::TABLE, [
-                    'context' => json_encode($this->context),
+                    'context' => json_encode(is_callable($this->context) ? call_user_func($this->context) : $this->context),
                     'listener' => $listener,
                     'tablename' => $table,
                     'action' => 'update',

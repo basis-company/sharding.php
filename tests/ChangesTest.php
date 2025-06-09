@@ -9,7 +9,7 @@ use Basis\Sharding\Test\Entity\User;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 
-class DriverTest extends TestCase
+class ChangesTest extends TestCase
 {
     #[DataProviderExternal(TestProvider::class, 'drivers')]
     public function testChanges(Driver $driver)
@@ -24,7 +24,7 @@ class DriverTest extends TestCase
         $this->assertCount(0, $driver->find('test_user'));
 
         $driver->registerChanges('test_user', 'notifier');
-        $driver->setContext(['access' => 1]);
+        $driver->setContext(fn() => ['access' => 1]);
 
         $nekufa = $db->create('test_user', ['name' => 'Dmitry Krokhin']);
         $this->assertCount(1, $driver->find(Change::TABLE));
