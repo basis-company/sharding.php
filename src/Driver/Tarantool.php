@@ -262,6 +262,9 @@ class Tarantool implements Driver
                 if ($condition->isGreaterThan !== null) {
                     $criteria = $criteria->andGtIterator()->andKey([$condition->isGreaterThan]);
                 }
+                if ($condition->equals !== null) {
+                    $criteria = $criteria->andEqIterator()->andKey([$condition->equals]);
+                }
             }
 
             $tuples = $this->mapper->client->getSpace($table)->select($criteria);

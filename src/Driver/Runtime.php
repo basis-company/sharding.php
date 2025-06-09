@@ -234,6 +234,9 @@ class Runtime implements Driver
                         if ($condition->isGreaterThan !== null && $row[$field] <= $condition->isGreaterThan) {
                             continue 3;
                         }
+                        if ($condition->equals !== null && $row[$field] != $condition->equals) {
+                            continue 3;
+                        }
                     }
                 }
                 $result[] = (object) $row;

@@ -7,6 +7,7 @@ namespace Basis\Sharding;
 class Where
 {
     public null|int|string $isGreaterThan = null;
+    public null|int|string $equals = null;
 
     public function __construct(
         public readonly Select $select,
@@ -20,6 +21,12 @@ class Where
     public function getConditions(): array
     {
         return array_merge([$this], $this->parent ? $this->parent->getConditions() : []);
+    }
+
+    public function equals(int|string $value): Select
+    {
+        $this->equals = $value;
+        return $this->select;
     }
 
     public function isGreaterThan(int|string $value): Select

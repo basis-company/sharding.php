@@ -30,5 +30,9 @@ class SelectTest extends TestCase
         $posts = $driver->select('test_post')->where("id")->isGreaterThan(2)->limit(2)->toArray();
         $this->assertCount(2, $posts);
         $this->assertSame(["3", "4"], array_map(fn ($post) => $post->name, $posts));
+
+        $posts = $driver->select('test_post')->where('id')->equals(2)->limit(1)->toArray();
+        $this->assertCount(1, $posts);
+        $this->assertSame("2", array_pop($posts)->name);
     }
 }
