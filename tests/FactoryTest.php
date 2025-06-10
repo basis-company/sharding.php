@@ -16,7 +16,7 @@ class FactoryTest extends TestCase
         $database = new Database(new Runtime());
         $instances = [];
 
-        $this->assertCount(3, $database->find(Bucket::class));
+        $this->assertCount(2, $database->find(Bucket::class));
 
         $database->factory->afterCreate(function ($instance) use (&$instances) {
             if ($instance instanceof Post) {

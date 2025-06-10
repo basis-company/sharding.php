@@ -15,6 +15,9 @@ use Tarantool\Client\Schema\Operations;
 
 class Sequence implements Bootstrap, Domain, Segment, Indexing
 {
+    public const TABLE = 'sharding_sequence';
+    public const BUCKET = 'sharding_sequence';
+
     public function __construct(
         public int $id,
         public string $name,
@@ -31,7 +34,7 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
         ]);
         $database->create(self::class, [
             'name' => $database->schema->getClassTable(Bucket::class),
-            'next' => 3,
+            'next' => 2,
         ]);
         $database->create(self::class, [
             'name' => $database->schema->getClassTable(Storage::class),
@@ -93,6 +96,6 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
 
     public static function getSegment(): string
     {
-        return 'sequences';
+        return 'sequence';
     }
 }

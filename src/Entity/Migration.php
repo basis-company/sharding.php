@@ -9,6 +9,8 @@ use Basis\Sharding\Schema\UniqueIndex;
 
 class Migration implements Domain, Indexing, Segment
 {
+    public const TABLE = 'sharding_migration';
+
     public function __construct(
         public int $id,
         public string $name,
@@ -33,6 +35,6 @@ class Migration implements Domain, Indexing, Segment
 
     public static function getSegment(): string
     {
-        return 'migrations';
+        return 'migration';
     }
 }

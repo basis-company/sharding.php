@@ -37,6 +37,6 @@ class Topology implements Domain, Indexing, Segment
 
     public static function getSegment(): string
     {
-        return 'buckets';
+        return 'core';
     }
 }

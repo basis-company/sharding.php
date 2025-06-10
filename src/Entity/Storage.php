@@ -14,6 +14,8 @@ use Basis\Sharding\Interface\Segment;
 #[Caching]
 class Storage implements Bootstrap, Domain, Segment
 {
+    public const TABLE = 'sharding_storage';
+
     public static $types = [
         'runtime' => Runtime::class,
         'tarantool' => Tarantool::class,
@@ -35,7 +37,7 @@ class Storage implements Bootstrap, Domain, Segment
 
     public static function getSegment(): string
     {
-        return 'storages';
+        return 'core';
     }
 
     public function __construct(

@@ -50,7 +50,7 @@ class Fetch
             } else {
                 $table = $this->database->schema->getClassTable($this->class);
             }
-            if (Bucket::isDedicated($bucket)) {
+            if ($bucket->isDedicated()) {
                 $table = explode('_', $table, 2)[1];
             }
             if (!$bucket->storage) {

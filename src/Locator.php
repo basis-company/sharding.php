@@ -96,10 +96,9 @@ class Locator implements LocatorInterface, ShardingInterface
     public function getBuckets(string $class, array $data = [], bool $writable = false, bool $multiple = true): array
     {
         $driver = $this->database->getStorageDriver(1);
-        $table = $this->database->schema->getClassTable(Bucket::class);
 
         if ($class == Bucket::class) {
-            $row = $driver->findOrFail($table, ['id' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME]]);
+            $row = $driver->findOrFail(Bucket::TABLE, ['name' => Bucket::BUCKET]);
             return [$this->database->factory->getInstance(Bucket::class, $row)];
         }
 
@@ -115,7 +114,7 @@ class Locator implements LocatorInterface, ShardingInterface
             }
         }
 
-        $buckets = $driver->find($table, ['name' => $name]);
+        $buckets = $driver->find(Bucket::TABLE, ['name' => $name]);
         $buckets = array_map(fn ($data) => $this->database->factory->getInstance(Bucket::class, $data), $buckets);
 
         $topology = $this->getTopology($class);

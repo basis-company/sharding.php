@@ -13,15 +13,12 @@ use Basis\Sharding\Schema\UniqueIndex;
 class Bucket implements Bootstrap, Segment, Indexing
 {
     public const DEDICATED_FLAG = 1;
-
-    public const BUCKET_BUCKET_NAME = 'sharding_buckets';
-    public const STORAGE_BUCKET_NAME = 'sharding_storages';
-    public const SEQUENCE_BUCKET_NAME = 'sharding_sequences';
+    public const TABLE = 'sharding_bucket';
+    public const BUCKET = 'sharding_core';
 
     public const KEYS = [
-        self::BUCKET_BUCKET_NAME => 1,
-        self::STORAGE_BUCKET_NAME => 2,
-        self::SEQUENCE_BUCKET_NAME => 3,
+        Bucket::BUCKET => 1,
+        Sequence::BUCKET => 2,
     ];
 
     public function __construct(
@@ -37,23 +34,13 @@ class Bucket implements Bootstrap, Segment, Indexing
 
     public static function bootstrap(Database $database): void
     {
-        $database->driver->create($database->schema->getClassTable(self::class), [
-            'id' => Bucket::KEYS[Bucket::BUCKET_BUCKET_NAME],
-            'name' => Bucket::BUCKET_BUCKET_NAME,
-            'storage' => 1,
-        ]);
-
-        $database->driver->create($database->schema->getClassTable(self::class), [
-            'id' => Bucket::KEYS[Bucket::STORAGE_BUCKET_NAME],
-            'name' => Bucket::STORAGE_BUCKET_NAME,
-            'storage' => 1,
-        ]);
-
-        $database->driver->create($database->schema->getClassTable(self::class), [
-            'id' => Bucket::KEYS[Bucket::SEQUENCE_BUCKET_NAME],
-            'name' => Bucket::SEQUENCE_BUCKET_NAME,
-            'storage' => 1,
-        ]);
+        foreach (self::KEYS as $name => $id) {
+            $database->driver->create($database->schema->getClassTable(self::class), [
+                'id' => $id,
+                'name' => $name,
+                'storage' => 1,
+            ]);
+        }
     }
 
     public static function getDomain(): string
@@ -70,11 +57,11 @@ class Bucket implements Bootstrap, Segment, Indexing
 
     public static function getSegment(): string
     {
-        return 'buckets';
+        return 'core';
     }
 
-    public static function isDedicated(self $bucket): bool
+    public function isDedicated(): bool
     {
-        return boolval($bucket->flags & self::DEDICATED_FLAG);
+        return boolval($this->flags & self::DEDICATED_FLAG);
     }
 }
