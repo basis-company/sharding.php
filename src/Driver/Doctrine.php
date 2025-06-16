@@ -249,6 +249,10 @@ class Doctrine implements Driver
         }
         return $sorted;
     }
+    public function query(string $query, array $params = []): array
+    {
+        return $this->getConnection()->executeQuery($query, $params)->fetchAllAssociative();
+    }
 
     public function registerChanges(string $table, string $listener): void
     {

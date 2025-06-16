@@ -222,6 +222,11 @@ class Tarantool implements Driver
         return (object) $this->mapper->getSpace($table)->getInstance($result);
     }
 
+    public function query(string $query, array $params = []): array
+    {
+        return $this->mapper->evaluate($query, $params);
+    }
+
     public function registerChanges(string $table, string $listener): void
     {
         if (!$this->hasTable(Subscription::TABLE)) {

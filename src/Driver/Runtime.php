@@ -171,6 +171,11 @@ class Runtime implements Driver
         return array_map(fn ($row) => (object) $row, $rows);
     }
 
+    public function query(string $query, array $params = []): array
+    {
+        throw new Exception('Not implemented');
+    }
+
     public function registerChange(string $table, string $action, array $data): void
     {
         if (strpos($table, 'sharding_') === 0) {
