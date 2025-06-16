@@ -175,6 +175,15 @@ class Database implements Crud
         return $this->drivers[$storageId];
     }
 
+    public function query(array|string $buckets, array $data = []): Query
+    {
+        if (is_string($buckets)) {
+            $buckets = $this->getBuckets($buckets, $data);
+        }
+
+        return new Query($this, $buckets);
+    }
+
     public function setContext(array|callable $context): void
     {
         $this->context = $context;

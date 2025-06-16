@@ -55,6 +55,23 @@ class QueryTest extends TestCase
                     [$tables[0]['schemaname'], $tables[0]['tablename']]
                 );
             $this->assertArrayHasKey('tablename', $table);
+
+            $tables = $database->query(Bucket::class)
+                ->rows(
+                    "select * from pg_catalog.pg_tables where schemaname = ? and tablename = ?",
+                    [$tables[0]['schemaname'], $tables[0]['tablename']]
+                );
+
+            $this->assertCount(1, $tables);
+            $this->assertArrayHasKey('tablename', $tables[0]);
+
+            $table = $database->query(Bucket::class)
+                ->row(
+                    "select * from pg_catalog.pg_tables where schemaname = ? and tablename = ?",
+                    [$tables[0]['schemaname'], $tables[0]['tablename']]
+                );
+            $this->assertArrayHasKey('tablename', $table);
+
         } elseif ($driver instanceof Tarantool) {
             [$spaces] = $driver->query("return box.space._vspace:select({box.space._vspace.id})");
             $this->assertIsArray($spaces);
@@ -84,6 +101,21 @@ class QueryTest extends TestCase
             $space = $database->fetchOne()
                 ->from($database->getBuckets(Bucket::class))
                 ->query("return box.space._vspace:get({id}):tomap({names_only = true})", [
+                    'id' => $space['id'],
+                ]);
+            $this->assertIsArray($space);
+            $this->assertArrayHasKey('name', $space);
+            $this->assertSame('_vspace', $space['name']);
+
+            $spaces = $database->query(Bucket::class)
+                ->rows("return box.space._vspace:get({id}):tomap({names_only = true})", [
+                    'id' => $space['id'],
+                ]);
+            $this->assertIsArray($spaces);
+            $this->assertCount(1, $spaces);
+
+            $space = $database->query(Bucket::class)
+                ->row("return box.space._vspace:get({id}):tomap({names_only = true})", [
                     'id' => $space['id'],
                 ]);
             $this->assertIsArray($space);
