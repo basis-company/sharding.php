@@ -89,12 +89,12 @@ class Database implements Crud
         return $job($this);
     }
 
-    public function fetch(string $class): Fetch
+    public function fetch(?string $class = null): Fetch
     {
         return new Fetch($this, $class);
     }
 
-    public function fetchOne(string $class): Fetch
+    public function fetchOne(?string $class = null): Fetch
     {
         return $this->fetch($class)->first();
     }
@@ -174,6 +174,7 @@ class Database implements Crud
 
         return $this->drivers[$storageId];
     }
+
     public function setContext(array|callable $context): void
     {
         $this->context = $context;

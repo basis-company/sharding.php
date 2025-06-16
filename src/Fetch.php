@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Basis\Sharding;
 
 use Basis\Sharding\Entity\Bucket;
+use Exception;
 
 class Fetch
 {
@@ -12,7 +13,7 @@ class Fetch
 
     public function __construct(
         public readonly Database $database,
-        public readonly string $class,
+        public readonly ?string $class = null,
         public bool $first = false,
     ) {
     }
@@ -33,8 +34,41 @@ class Fetch
         return $this;
     }
 
+    public function query(string $query, array $params = []): array
+    {
+        if (!$this->buckets) {
+            throw new Exception("No buckets defined");
+        }
+
+        $result = [];
+
+        foreach ($this->buckets as $bucket) {
+            $driver = $this->database->getStorageDriver($bucket->storage);
+            $bucketResult = $driver->query($query, $params);
+            if (array_is_list($bucketResult) && count($bucketResult)) {
+                foreach ($bucketResult as $row) {
+                    $result[] = $row;
+                }
+            } else {
+                $result = array_merge($result, $bucketResult);
+            }
+            if ($this->first && count($result)) {
+                if (array_is_list($result)) {
+                    return $result[0];
+                }
+                return $result;
+            }
+        }
+
+        return $result;
+    }
+
     public function using(callable $callback): array|object|null
     {
+        if (!$this->class) {
+            throw new Exception("No class defined");
+        }
+
         if (!$this->buckets) {
             $this->buckets = $this->database->getBuckets($this->class);
         }
