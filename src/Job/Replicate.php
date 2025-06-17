@@ -28,7 +28,7 @@ class Replicate implements Job
         }
 
         $buckets = $database->find(Bucket::class);
-        $tableStorages = [];
+        $tableDrivers = [];
 
         foreach ($buckets as $master) {
             if ($master->storage != $this->storage || !array_key_exists($master->name, array_filter($replicas))) {
@@ -39,15 +39,15 @@ class Replicate implements Job
                     continue;
                 }
                 foreach ($database->schema->getSegmentByName($master->name)->getTables() as $table) {
-                    if (!array_key_exists($table, $tableStorages)) {
-                        $tableStorages[$table] = [];
+                    if (!array_key_exists($table, $tableDrivers)) {
+                        $tableDrivers[$table] = [];
                     }
-                    $tableStorages[$table][] = $database->getStorageDriver($replica->storage);
+                    $tableDrivers[$table][] = $database->getStorage($replica->storage)->getDriver();
                 }
             }
         }
 
-        $storage = $database->getStorageDriver($this->storage);
+        $storage = $database->getStorage($this->storage)->getDriver();
 
         while (!$this->limit || $this->complete < $this->limit) {
             $changes = $storage->getChanges('replication');
@@ -57,10 +57,10 @@ class Replicate implements Job
             }
             foreach ($changes as $change) {
                 assert($change instanceof Change);
-                if (!array_key_exists($change->tablename, $tableStorages)) {
+                if (!array_key_exists($change->tablename, $tableDrivers)) {
                     throw new Exception("Replication target not found");
                 }
-                foreach ($tableStorages[$change->tablename] as $destination) {
+                foreach ($tableDrivers[$change->tablename] as $destination) {
                     switch ($change->action) {
                         case 'create':
                             $destination->findOrCreate($change->tablename, ['id' => $change->data['id']], $change->data);

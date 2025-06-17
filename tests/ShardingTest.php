@@ -99,30 +99,30 @@ class ShardingTest extends TestCase
         );
 
         $activity = $database->create(Activity::class, []);
-        $this->assertCount(1, $database->getStorageDriver($source->storage)->find('telemetry_activity', []));
-        $this->assertCount(0, $database->getStorageDriver($destination->storage)->find('telemetry_activity', []));
+        $this->assertCount(1, $database->getStorage($source->storage)->getDriver()->find('telemetry_activity', []));
+        $this->assertCount(0, $database->getStorage($destination->storage)->getDriver()->find('telemetry_activity', []));
         $this->assertCount(0, $database->find(Activity::class));
 
-        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::TABLE));
+        $this->assertCount(1, $database->getStorage($source->storage)->getDriver()->find(Change::TABLE));
         $database->dispatch(new Replicate($source->storage, limit:1));
-        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::TABLE));
-        $this->assertCount(1, $database->getStorageDriver($destination->storage)->find('telemetry_activity'));
+        $this->assertCount(0, $database->getStorage($source->storage)->getDriver()->find(Change::TABLE));
+        $this->assertCount(1, $database->getStorage($destination->storage)->getDriver()->find('telemetry_activity'));
 
         $database->update($activity, ['type' => 27]);
-        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::TABLE));
+        $this->assertCount(1, $database->getStorage($source->storage)->getDriver()->find(Change::TABLE));
 
         $database->dispatch(new Replicate($source->storage, limit:1));
-        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::TABLE));
-        $this->assertCount(1, $database->getStorageDriver($destination->storage)->find('telemetry_activity'));
-        [$replicated] = $database->getStorageDriver($destination->storage)->find('telemetry_activity');
+        $this->assertCount(0, $database->getStorage($source->storage)->getDriver()->find(Change::TABLE));
+        $this->assertCount(1, $database->getStorage($destination->storage)->getDriver()->find('telemetry_activity'));
+        [$replicated] = $database->getStorage($destination->storage)->getDriver()->find('telemetry_activity');
         $this->assertSame($replicated['type'], 27);
 
         $database->delete($activity);
-        $this->assertCount(1, $database->getStorageDriver($source->storage)->find(Change::TABLE));
+        $this->assertCount(1, $database->getStorage($source->storage)->getDriver()->find(Change::TABLE));
 
         $database->dispatch(new Replicate($source->storage, limit:1));
-        $this->assertCount(0, $database->getStorageDriver($source->storage)->find(Change::TABLE));
-        $this->assertCount(0, $database->getStorageDriver($destination->storage)->find('telemetry_activity'));
+        $this->assertCount(0, $database->getStorage($source->storage)->getDriver()->find(Change::TABLE));
+        $this->assertCount(0, $database->getStorage($destination->storage)->getDriver()->find('telemetry_activity'));
     }
 
     public function testUuidDistribution()
@@ -136,8 +136,8 @@ class ShardingTest extends TestCase
 
         $this->assertCount(1, $database->find(Topology::class));
         $database->create(Activity::class, []);
-        $this->assertFalse($database->getStorageDriver(1)->hasTable('telemetry_activity'));
-        $this->assertTrue($database->getStorageDriver(2)->hasTable('telemetry_activity'));
+        $this->assertFalse($database->getStorage(1)->getDriver()->hasTable('telemetry_activity'));
+        $this->assertTrue($database->getStorage(2)->getDriver()->hasTable('telemetry_activity'));
         $this->assertCount(1, $database->find(Activity::class));
 
         $this->assertCount(2, array_filter($database->getBuckets(Activity::class), fn ($bucket) => $bucket->storage));
@@ -147,10 +147,10 @@ class ShardingTest extends TestCase
         $this->assertCount(2, array_filter($database->getBuckets(Activity::class), fn ($bucket) => $bucket->storage));
         $this->assertCount(10, $database->find(Activity::class));
 
-        $this->assertTrue($database->getStorageDriver(1)->hasTable('telemetry_activity'));
-        $this->assertTrue($database->getStorageDriver(2)->hasTable('telemetry_activity'));
-        $this->assertNotCount(0, $database->getStorageDriver(1)->find('telemetry_activity'));
-        $this->assertNotCount(0, $database->getStorageDriver(2)->find('telemetry_activity'));
+        $this->assertTrue($database->getStorage(1)->getDriver()->hasTable('telemetry_activity'));
+        $this->assertTrue($database->getStorage(2)->getDriver()->hasTable('telemetry_activity'));
+        $this->assertNotCount(0, $database->getStorage(1)->getDriver()->find('telemetry_activity'));
+        $this->assertNotCount(0, $database->getStorage(2)->getDriver()->find('telemetry_activity'));
     }
 
     public function testIntegerKeyDistribution()
@@ -168,7 +168,7 @@ class ShardingTest extends TestCase
 
         $this->assertCount(10, $database->find(User::class, []));
         $this->assertCount(2, array_filter($database->getBuckets(User::class, []), fn($bucket) => $bucket->storage));
-        $this->assertCount(5, $database->driver->find('test_user'));
+        $this->assertCount(5, $database->getCoreDriver()->find('test_user'));
     }
 
     public function testCustomDistribution()

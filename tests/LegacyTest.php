@@ -46,7 +46,7 @@ class LegacyTest extends TestCase
         $this->assertCount(1, $database->find('stage.stage_correction'));
         $this->assertInstanceOf(StageCorrection::class, $database->findOne('stage.stage_correction', []));
 
-        $database = new Database($database->driver);
+        $database = new Database($database->getCoreDriver());
         $this->assertCount(1, $database->find('stage.stage_correction'));
     }
 }

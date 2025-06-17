@@ -43,7 +43,7 @@ class Fetch
         $result = [];
 
         foreach ($this->buckets as $bucket) {
-            $driver = $this->database->getStorageDriver($bucket->storage);
+            $driver = $bucket->isCore() ? $this->database->getCoreDriver() : $this->database->getStorage($bucket->storage)->getDriver();
             $bucketResult = $driver->query($query, $params);
             if (array_is_list($bucketResult) && count($bucketResult)) {
                 foreach ($bucketResult as $row) {
@@ -90,7 +90,7 @@ class Fetch
             if (!$bucket->storage) {
                 continue;
             }
-            $driver = $this->database->getStorageDriver($bucket->storage);
+            $driver = $bucket->isCore() ? $this->database->getCoreDriver() : $this->database->getStorage($bucket->storage)->getDriver();
             foreach ($callback($driver, $table) as $row) {
                 $rows[] = $this->database->factory->getInstance(
                     class: $tableClass ?: $this->class,

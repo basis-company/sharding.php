@@ -63,8 +63,7 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
             'next' => 0,
         ]);
 
-        [$bucket] = $database->getBuckets(Sequence::class, writable: true);
-        $driver = $database->getStorageDriver($bucket->storage);
+        $driver = $database->getCoreDriver();
 
         if ($driver instanceof Runtime) {
             $driver->update($database->schema->getClassTable(Sequence::class), $sequence->id, [

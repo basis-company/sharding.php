@@ -10,11 +10,14 @@ use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Domain;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Interface\Segment;
+use Exception;
 
 #[Caching]
 class Storage implements Bootstrap, Domain, Segment
 {
     public const TABLE = 'sharding_storage';
+
+    private ?Driver $driver = null;
 
     public static $types = [
         'runtime' => Runtime::class,
@@ -25,8 +28,8 @@ class Storage implements Bootstrap, Domain, Segment
     {
         $database->create(self::class, [
             'id' => 1,
-            'type' => array_search(get_class($database->driver), self::$types),
-            'dsn' => $database->driver->getDsn(),
+            'type' => array_search(get_class($database->getCoreDriver()), self::$types),
+            'dsn' => $database->getCoreDriver()->getDsn(),
         ]);
     }
 
@@ -47,8 +50,19 @@ class Storage implements Bootstrap, Domain, Segment
     ) {
     }
 
-    public function createDriver(): Driver
+    public function getDriver(): Driver
     {
-        return new self::$types[$this->type]($this->dsn);
+        if (!$this->driver) {
+            $this->driver = new self::$types[$this->type]($this->dsn);
+        }
+        return $this->driver;
+    }
+
+    public function setDriver(Driver $driver): void
+    {
+        if ($this->driver !== null) {
+            throw new Exception('Driver already set');
+        }
+        $this->driver = $driver;
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Basis\Sharding;
 
 use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Sequence;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Interface\Locator as LocatorInterface;
@@ -40,7 +41,7 @@ class Locator implements LocatorInterface, ShardingInterface
             throw new Exception('No available storage');
         }
 
-        $usages = array_map(fn($storage) => $database->getStorageDriver($storage->id)->getUsage(), $availableStorages);
+        $usages = array_map(fn($storage) => $database->getStorage($storage->id)->getDriver()->getUsage(), $availableStorages);
         return $availableStorages[array_search(min($usages), $usages)];
     }
 
@@ -57,7 +58,8 @@ class Locator implements LocatorInterface, ShardingInterface
         }
 
         if ($this->database->schema->hasSegment($bucket->name)) {
-            $this->database->getStorageDriver($bucket->storage)->syncSchema($this->database, $bucket);
+            $driver = $bucket->isCore() ? $this->database->getCoreDriver() : $this->database->getStorage($bucket->storage)->getDriver();
+            $driver->syncSchema($this->database, $bucket);
         }
 
         if ($bucket->version && !$bucket->replica) {
@@ -66,7 +68,7 @@ class Locator implements LocatorInterface, ShardingInterface
                 'version' => $bucket->version,
             ]);
             if ($topology->replicas) {
-                $driver = $this->database->getStorageDriver($bucket->storage);
+                $driver = $this->database->getStorage($bucket->storage)->getDriver();
                 array_map(
                     fn($table) => $driver->registerChanges($table, 'replication'),
                     $this->database->schema->getSegmentByName($bucket->name)->getTables(),
@@ -95,7 +97,7 @@ class Locator implements LocatorInterface, ShardingInterface
 
     public function getBuckets(string $class, array $data = [], bool $writable = false, bool $multiple = true): array
     {
-        $driver = $this->database->getStorageDriver(1);
+        $driver = $this->database->getCoreDriver();
 
         if ($class == Bucket::class) {
             $row = $driver->findOrFail(Bucket::TABLE, ['name' => Bucket::BUCKET]);

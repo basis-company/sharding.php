@@ -24,12 +24,12 @@ class CastingTest extends TestCase
 
         // first storage was casted using class locator interface implementation (always first)
         $database->locator->getBuckets(Post::class, writable: true);
-        $this->assertTrue($database->getStorageDriver(1)->hasTable('test_post'));
-        $this->assertFalse($database->getStorageDriver(2)->hasTable('test_post'));
+        $this->assertTrue($database->getStorage(1)->getDriver()->hasTable('test_post'));
+        $this->assertFalse($database->getStorage(2)->getDriver()->hasTable('test_post'));
 
         // empty storage is casted using standard locator (driver usage api)
         $database->locator->getBuckets(User::class, writable: true);
-        $this->assertFalse($database->getStorageDriver(1)->hasTable('test_user'));
-        $this->assertTrue($database->getStorageDriver(2)->hasTable('test_user'));
+        $this->assertFalse($database->getStorage(1)->getDriver()->hasTable('test_user'));
+        $this->assertTrue($database->getStorage(2)->getDriver()->hasTable('test_user'));
     }
 }

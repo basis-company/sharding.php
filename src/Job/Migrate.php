@@ -61,7 +61,7 @@ class Migrate implements Job
 
         foreach ($currentBuckets as $currentBucket) {
             foreach ($tables as $table) {
-                $database->getStorageDriver($currentBucket->storage)->registerChanges($table, 'migration');
+                $database->getStorage($currentBucket->storage)->getDriver()->registerChanges($table, 'migration');
             }
         }
 
@@ -83,7 +83,7 @@ class Migrate implements Job
             $bucket = $currentBuckets[$migration->bucket];
             $class = $classes[$migration->table];
             $table = $tables[$migration->table];
-            $driver = $database->getStorageDriver($bucket->storage);
+            $driver = $database->getStorage($bucket->storage)->getDriver();
 
             $rows = $driver->select($table)
                 ->where('id')
@@ -127,7 +127,7 @@ class Migrate implements Job
 
             foreach ($nextBuckets as $nextBucket) {
                 if (array_key_exists($nextBucket->shard, $sharded)) {
-                    $database->getStorageDriver($nextBucket->storage)->insert($table, $sharded[$nextBucket->shard]);
+                    $database->getStorage($nextBucket->storage)->getDriver()->insert($table, $sharded[$nextBucket->shard]);
                 }
             }
 
@@ -140,7 +140,7 @@ class Migrate implements Job
 
 
         foreach ($currentBuckets as $currentBucket) {
-            $changes = $database->getStorageDriver($currentBucket->storage)->getChanges('migration');
+            $changes = $database->getStorage($currentBucket->storage)->getDriver()->getChanges('migration');
             if (count($changes)) {
                 $sharded = [];
                 foreach ($changes as $change) {
@@ -159,7 +159,7 @@ class Migrate implements Job
 
                 foreach ($nextBuckets as $nextBucket) {
                     if (array_key_exists($nextBucket->shard, $sharded)) {
-                        $driver = $database->getStorageDriver($nextBucket->storage);
+                        $driver = $database->getStorage($nextBucket->storage)->getDriver();
                         foreach ($sharded[$nextBucket->shard] as $table => $rows) {
                             foreach ($rows as $row) {
                                 $driver->update($table, $row['id'], $row);
@@ -168,7 +168,7 @@ class Migrate implements Job
                     }
                 }
 
-                $database->getStorageDriver($currentBucket->storage)->ackChanges($changes);
+                $database->getStorage($currentBucket->storage)->getDriver()->ackChanges($changes);
                 if (++$complete >= $this->iterations) {
                     return;
                 }

@@ -71,10 +71,10 @@ class MigrationTest extends TestCase
         );
 
         $this->assertCount(2, $writableStoragesKeys);
-        $writableStorages = array_map(fn($key) => $database->getStorageDriver($key), $writableStoragesKeys);
+        $writableStorages = array_map(fn($key) => $database->getStorage($key)->getDriver(), $writableStoragesKeys);
 
         $readableStorages = array_map(
-            fn($bucket) => $database->getStorageDriver($bucket->storage),
+            fn($bucket) => $database->getStorage($bucket->storage)->getDriver(),
             array_filter(
                 $database->find(Bucket::class, ['name' => $buckets[0]->name, 'version' => 2]),
                 fn($bucket) => !in_array($bucket->storage, $writableStoragesKeys),
@@ -130,10 +130,10 @@ class MigrationTest extends TestCase
         $this->assertSame($writable[0]->version, 2);
         $this->assertSame($writable[1]->version, 2);
 
-        $this->assertCount(0, $database->getStorageDriver($buckets[0]->storage)->getListeners('telemetry_activity'));
-        $this->assertCount(0, $database->getStorageDriver($buckets[1]->storage)->getListeners('telemetry_activity'));
-        $this->assertCount(1, $database->getStorageDriver($writable[0]->storage)->getListeners('telemetry_activity'));
-        $this->assertCount(1, $database->getStorageDriver($writable[1]->storage)->getListeners('telemetry_activity'));
+        $this->assertCount(0, $database->getStorage($buckets[0]->storage)->getDriver()->getListeners('telemetry_activity'));
+        $this->assertCount(0, $database->getStorage($buckets[1]->storage)->getDriver()->getListeners('telemetry_activity'));
+        $this->assertCount(1, $database->getStorage($writable[0]->storage)->getDriver()->getListeners('telemetry_activity'));
+        $this->assertCount(1, $database->getStorage($writable[1]->storage)->getDriver()->getListeners('telemetry_activity'));
 
         $this->assertCount(10, $database->find(Activity::class));
         $this->assertSame($database->findOne(Activity::class, ['id' => $first['id']])->type, 27);

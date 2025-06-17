@@ -35,7 +35,7 @@ class Bucket implements Bootstrap, Segment, Indexing
     public static function bootstrap(Database $database): void
     {
         foreach (self::KEYS as $name => $id) {
-            $database->driver->create($database->schema->getClassTable(self::class), [
+            $database->getCoreDriver()->create($database->schema->getClassTable(self::class), [
                 'id' => $id,
                 'name' => $name,
                 'storage' => 1,
@@ -63,5 +63,10 @@ class Bucket implements Bootstrap, Segment, Indexing
     public function isDedicated(): bool
     {
         return boolval($this->flags & self::DEDICATED_FLAG);
+    }
+
+    public function isCore(): bool
+    {
+        return $this->name === self::BUCKET || $this->name === Sequence::BUCKET;
     }
 }

@@ -17,11 +17,11 @@ use Ramsey\Uuid\Uuid;
 class Database implements Crud
 {
     public readonly Locator $locator;
-    private array $drivers = [];
+    private array $storages = [];
     private $context = [];
 
     public function __construct(
-        public readonly Driver $driver,
+        private readonly Driver $driver,
         public readonly Schema $schema = new Schema(),
         public readonly Factory $factory = new Factory(),
         public readonly ?CacheItemPoolInterface $cache = null,
@@ -33,6 +33,7 @@ class Database implements Crud
                 $driver->syncSchema($this, new Bucket(0, $segment, 0, 0, 0, 1, 0));
             }
         }
+
         $driver->setContext($this->getContext(...));
     }
 
@@ -159,20 +160,24 @@ class Database implements Crud
         return (is_callable($this->context) ? ($this->context)() : $this->context) ?: [];
     }
 
-    public function getStorageDriver(int $storageId): Driver
+    public function getCoreDriver(): Driver
     {
-        if ($storageId == 1) {
-            return $this->driver;
-        }
+        return $this->driver;
+    }
 
-        if (!count($this->drivers)) {
+    public function getStorage(int $storageId): Storage
+    {
+        if (!count($this->storages)) {
             foreach ($this->find(Storage::class) as $storage) {
-                $this->drivers[$storage->id] = $storageId == 1 ? $this->driver : $storage->createDriver($this);
-                $this->drivers[$storage->id]->setContext($this->getContext(...));
+                if ($storage->id == 1) {
+                    $storage->setDriver($this->driver);
+                }
+                $storage->getDriver()->setContext($this->getContext(...));
+                $this->storages[$storage->id] = $storage;
             }
         }
 
-        return $this->drivers[$storageId];
+        return $this->storages[$storageId];
     }
 
     public function query(array|string $buckets, array $data = []): Query
