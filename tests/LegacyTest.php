@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Basis\Sharding\Test;
 
 use Basis\Sharding\Database;
-use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Schema\Legacy;
-use Basis\Sharding\Test\Entity\Stage;
 use Basis\Sharding\Test\Entity\StageCorrection;
 use Basis\Sharding\Test\Repository\StageCorrection as StageCorrectionRepository;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
