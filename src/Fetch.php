@@ -84,13 +84,18 @@ class Fetch
             } else {
                 $table = $this->database->schema->getClassTable($this->class);
             }
-            if ($bucket->isDedicated()) {
-                $table = explode('_', $table, 2)[1];
-            }
             if (!$bucket->storage) {
                 continue;
             }
-            $driver = $bucket->isCore() ? $this->database->getCoreDriver() : $this->database->getStorage($bucket->storage)->getDriver();
+            if ($bucket->isCore()) {
+                $driver = $this->database->getCoreDriver();
+            } else {
+                $storage = $this->database->getStorage($bucket->storage);
+                if ($storage->isDedicated()) {
+                    $table = explode('_', $table, 2)[1];
+                }
+                $driver = $storage->getDriver();
+            }
             foreach ($callback($driver, $table) as $row) {
                 $rows[] = $this->database->factory->getInstance(
                     class: $tableClass ?: $this->class,

@@ -15,6 +15,7 @@ use Exception;
 #[Caching]
 class Storage implements Bootstrap, Domain, Segment
 {
+    public const DEDICATED_FLAG = 1;
     public const TABLE = 'sharding_storage';
 
     private ?Driver $driver = null;
@@ -47,6 +48,7 @@ class Storage implements Bootstrap, Domain, Segment
         public int $id,
         public string $type,
         public string $dsn,
+        public int $flags,
     ) {
     }
 
@@ -65,4 +67,10 @@ class Storage implements Bootstrap, Domain, Segment
         }
         $this->driver = $driver;
     }
+
+    public function isDedicated(): bool
+    {
+        return boolval($this->flags & self::DEDICATED_FLAG);
+    }
+
 }

@@ -6,6 +6,7 @@ use Basis\Sharding\Attribute\Autoincrement;
 use Basis\Sharding\Database as ShardingDatabase;
 use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Change;
+use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Subscription;
 use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Driver;
@@ -303,10 +304,9 @@ class Doctrine implements Driver
         $this->context = $context;
     }
 
-    public function syncModel(Model $model, ?Bucket $bucket = null)
+    public function syncModel(Model $model, ?Bucket $bucket = null, ?Storage $storage = null)
     {
-        $name = $model->getTable($bucket);
-
+        $name = $model->getTable($bucket, $storage);
         $manager = $this->getConnection()->createSchemaManager();
         $schema = $manager->introspectSchema();
         $table = $schema->hasTable($name) ? $schema->getTable($name) : $schema->createTable($name);
@@ -352,11 +352,13 @@ class Doctrine implements Driver
     {
         $bootstrappers = [];
         $segment = $shardingDatabase->schema->getSegmentByName($bucket->name);
+        $storage = $bucket->isCore() ? null : $shardingDatabase->getStorage($bucket->storage);
+
         foreach ($segment->getModels() as $model) {
             if (!$this->hasTable($model->getTable($bucket)) && is_a($model->class, Bootstrap::class, true)) {
                 $bootstrappers[] = $model->class;
             }
-            $this->syncModel($model, $bucket);
+            $this->syncModel($model, $bucket, $storage);
         }
 
         foreach ($bootstrappers as $bootstrapper) {

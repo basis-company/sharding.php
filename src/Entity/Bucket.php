@@ -12,7 +12,6 @@ use Basis\Sharding\Schema\UniqueIndex;
 #[Caching]
 class Bucket implements Bootstrap, Segment, Indexing
 {
-    public const DEDICATED_FLAG = 1;
     public const TABLE = 'sharding_bucket';
     public const BUCKET = 'sharding_core';
 
@@ -28,7 +27,6 @@ class Bucket implements Bootstrap, Segment, Indexing
         public int $shard,
         public int $replica,
         public int $storage,
-        public int $flags,
     ) {
     }
 
@@ -58,11 +56,6 @@ class Bucket implements Bootstrap, Segment, Indexing
     public static function getSegment(): string
     {
         return 'core';
-    }
-
-    public function isDedicated(): bool
-    {
-        return boolval($this->flags & self::DEDICATED_FLAG);
     }
 
     public function isCore(): bool

@@ -5,6 +5,7 @@ namespace Basis\Sharding\Schema;
 use Basis\Sharding\Attribute\Caching;
 use Basis\Sharding\Attribute\Sharding as ShardingAttribute;
 use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Interface\Indexing;
 use Basis\Sharding\Interface\Sharding as ShardingInterface;
 use ReflectionClass;
@@ -118,10 +119,10 @@ class Model
         return $this->properties;
     }
 
-    public function getTable(?Bucket $bucket = null): string
+    public function getTable(?Bucket $bucket = null, ?Storage $storage = null): string
     {
         $table = $this->table;
-        if ($bucket && $bucket->flags & Bucket::DEDICATED_FLAG) {
+        if ($bucket && $storage && $storage->isDedicated()) {
             $table = substr($table, strlen($bucket->name) + 1);
         }
 

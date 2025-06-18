@@ -262,13 +262,15 @@ class Runtime implements Driver
     public function syncSchema(Database $database, Bucket $bucket): void
     {
         $bootstrappers = [];
+        $storage = $bucket->isCore() ? null : $database->getStorage($bucket->storage);
 
         foreach ($database->schema->getSegmentByName($bucket->name, create: false)->getModels() as $model) {
-            if (array_key_exists($model->getTable($bucket), $this->data)) {
+            $table = $model->getTable($bucket, $storage);
+            if (array_key_exists($table, $this->data)) {
                 continue;
             }
-            $this->data[$model->getTable($bucket)] = [];
-            $this->models[$model->getTable($bucket)] = $model;
+            $this->data[$table] = [];
+            $this->models[$table] = $model;
             if (is_a($model->class, Bootstrap::class, true)) {
                 $bootstrappers[] = $model->class;
             }

@@ -79,10 +79,8 @@ class DatabaseTest extends TestCase
         $this->assertCount(1, $database->getBuckets(MapperLogin::class, writable: true));
         [$bucket] = $database->getBuckets(MapperLogin::class, writable: true);
 
-        $database->update(Bucket::class, $bucket->id, [
-            'flags' => Bucket::DEDICATED_FLAG,
-            'storage' => 1,
-        ]);
+        $database->update($bucket, ['storage' => 1]);
+        $database->update($database->getStorage(1), [ 'flags' => Storage::DEDICATED_FLAG ]);
 
         $this->assertCount(1, $database->find(MapperLogin::class));
     }
