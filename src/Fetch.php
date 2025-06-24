@@ -13,7 +13,7 @@ class Fetch
 
     public function __construct(
         public readonly Database $database,
-        public readonly ?string $class = null,
+        public ?string $class = null,
         public bool $first = false,
     ) {
     }
@@ -69,24 +69,23 @@ class Fetch
             throw new Exception("No class defined");
         }
 
+        $class = str_replace('.', '_', $this->class);
+        if (!class_exists($class, false)) {
+            if ($this->database->schema->hasTable($class)) {
+                $class = $this->database->schema->getTableClass($class);
+            }
+        }
+
         if (!$this->buckets) {
-            $this->buckets = $this->database->getBuckets($this->class);
+            $this->buckets = $this->database->getBuckets($class);
         }
 
         $rows = [];
         foreach ($this->buckets as $bucket) {
-            $tableClass = null;
-            if (!class_exists($this->class)) {
-                $table = str_replace('.', '_', $this->class);
-                if ($this->database->schema->hasTable($table)) {
-                    $tableClass = $this->database->schema->getTableClass($table);
-                }
-            } else {
-                $table = $this->database->schema->getClassTable($this->class);
-            }
             if (!$bucket->storage) {
                 continue;
             }
+            $table = class_exists($class) ? $this->database->schema->getClassTable($class) : $class;
             if ($bucket->isCore()) {
                 $driver = $this->database->getCoreDriver();
             } else {
@@ -97,10 +96,7 @@ class Fetch
                 $driver = $storage->getDriver();
             }
             foreach ($callback($driver, $table) as $row) {
-                $rows[] = $this->database->factory->getInstance(
-                    class: $tableClass ?: $this->class,
-                    data: $row,
-                );
+                $rows[] = $this->database->factory->getInstance($class, $row);
                 if ($this->first) {
                     return array_pop($rows);
                 }
