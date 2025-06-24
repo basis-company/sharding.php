@@ -4,6 +4,7 @@ namespace Basis\Sharding\Entity;
 
 use Basis\Sharding\Attribute\Caching;
 use Basis\Sharding\Database;
+use Basis\Sharding\Driver\Doctrine;
 use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Driver\Tarantool;
 use Basis\Sharding\Interface\Bootstrap;
@@ -21,6 +22,7 @@ class Storage implements Bootstrap, Domain, Segment
     private ?Driver $driver = null;
 
     public static $types = [
+        'doctrine' => Doctrine::class,
         'runtime' => Runtime::class,
         'tarantool' => Tarantool::class,
     ];
