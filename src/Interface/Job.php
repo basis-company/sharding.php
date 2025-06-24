@@ -6,5 +6,5 @@ use Basis\Sharding\Database;
 
 interface Job
 {
-    public function __invoke(Database $crud);
+    public function __invoke(Database $database);
 }
