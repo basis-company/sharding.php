@@ -47,5 +47,8 @@ class LegacyTest extends TestCase
         $database->schema->register(StageCorrection::class, 'stage');
         $database->schema->getTableClass(str_replace('.', '_', 'stage.stage_correction'));
         $this->assertInstanceOf(StageCorrection::class, $database->findOne('stage.stage_correction', []));
+
+        $this->assertCount(1, $database->getDomain('stage')->find('stage_correction'));
+        $this->assertInstanceOf(StageCorrection::class, $database->getDomain('stage')->findOne('stage_correction', []));
     }
 }

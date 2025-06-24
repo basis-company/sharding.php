@@ -165,6 +165,11 @@ class Database implements Crud
         return $this->driver;
     }
 
+    public function getDomain(string $domain): Domain
+    {
+        return new Domain($this, $domain);
+    }
+
     public function getStorage(int $storageId): Storage
     {
         if (!count($this->storages)) {
