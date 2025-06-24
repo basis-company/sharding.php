@@ -3,10 +3,12 @@
 namespace Basis\Sharding;
 
 use Closure;
+use ReflectionClass;
 
 class Factory
 {
     private array $afterCreate = [];
+    private array $defaults = [];
     private array $excludedFromIdentityMap = [];
     private array $identityMap = [];
 
@@ -22,6 +24,27 @@ class Factory
         if (array_key_exists($class, $this->identityMap)) {
             unset($this->identityMap[$class]);
         }
+    }
+
+    public function getDefaults(string $class): array
+    {
+        if (!array_key_exists($class, $this->defaults)) {
+            $this->defaults[$class] = [];
+            if (!class_exists($class)) {
+                return [];
+            }
+            $reflection = new ReflectionClass($class);
+            if (!$reflection->getConstructor()) {
+                return [];
+            }
+            foreach ($reflection->getConstructor()->getParameters() as $parameter) {
+                if ($parameter->isDefaultValueAvailable()) {
+                    $this->defaults[$class][$parameter->getName()] = $parameter->getDefaultValue();
+                }
+            }
+        }
+
+        return $this->defaults[$class];
     }
 
     public function getInstance(string $class, array|object $data): object

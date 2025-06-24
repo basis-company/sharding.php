@@ -64,6 +64,12 @@ class Database implements Crud
             $data['id'] = $this->generateId($class);
         }
 
+        foreach ($this->factory->getDefaults($class) as $k => $v) {
+            if (!array_key_exists($k, $data)) {
+                $data[$k] = $v;
+            }
+        }
+
         if ($class == Storage::class) {
             $this->storages = [];
         }
@@ -130,6 +136,13 @@ class Database implements Crud
         if (property_exists($class, 'id') && (!array_key_exists('id', $data) || !$data['id'])) {
             $data = array_merge($data, ['id' => $this->generateId($class)]);
         }
+
+        foreach ($this->factory->getDefaults($class) as $k => $v) {
+            if (!array_key_exists($k, $data)) {
+                $data[$k] = $v;
+            }
+        }
+
 
         return $this->fetchOne($class)
             ->from($data, writable: true, multiple: false)
