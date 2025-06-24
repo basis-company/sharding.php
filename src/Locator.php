@@ -34,9 +34,17 @@ class Locator implements LocatorInterface, ShardingInterface
         );
 
         $usedStorageKeys = array_map(fn($bucket) => $bucket->storage, $buckets);
-        $storages = $database->find(Storage::class);
-        $availableStorages = array_filter($storages, fn($storage) => !in_array($storage->id, $usedStorageKeys));
 
+        $topology = $database->findOne(Topology::class, [
+            'name' => $bucket->name,
+            'version' => $bucket->version,
+        ]);
+
+        $storages = $database->find(Storage::class, [
+            'tier' => $topology && $topology->tier ? $topology->tier : 1,
+        ]);
+
+        $availableStorages = array_filter($storages, fn($storage) => !in_array($storage->id, $usedStorageKeys));
         if (!count($availableStorages)) {
             throw new Exception('No available storage');
         }
@@ -125,7 +133,7 @@ class Locator implements LocatorInterface, ShardingInterface
         }
 
         if (!count($buckets)) {
-            $buckets = $this->generateBuckets($topology ?: new Topology(0, $name, 0, Topology::READY_STATUS, 1, 0));
+            $buckets = $this->generateBuckets($topology ?: new Topology(0, $name, 0, Topology::READY_STATUS, 1, 0, 1));
         }
 
         $buckets = array_filter($buckets, fn (Bucket $bucket) => $bucket->replica == !$writable) ?: $buckets;

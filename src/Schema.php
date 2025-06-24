@@ -7,6 +7,7 @@ namespace Basis\Sharding;
 use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Sequence;
 use Basis\Sharding\Entity\Storage;
+use Basis\Sharding\Entity\Tier;
 use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Interface\Domain as DomainInterface;
 use Basis\Sharding\Interface\Segment as SegmentInterface;
@@ -30,6 +31,7 @@ class Schema
         $this->register(Bucket::class);
         $this->register(Sequence::class);
         $this->register(Storage::class);
+        $this->register(Tier::class);
         $this->register(Topology::class);
     }
 

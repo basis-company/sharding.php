@@ -10,11 +10,13 @@ use Basis\Sharding\Driver\Tarantool;
 use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Domain;
 use Basis\Sharding\Interface\Driver;
+use Basis\Sharding\Interface\Indexing;
 use Basis\Sharding\Interface\Segment;
+use Basis\Sharding\Schema\Index;
 use Exception;
 
 #[Caching]
-class Storage implements Bootstrap, Domain, Segment
+class Storage implements Bootstrap, Domain, Segment, Indexing
 {
     public const DEDICATED_FLAG = 1;
     public const TABLE = 'sharding_storage';
@@ -33,12 +35,19 @@ class Storage implements Bootstrap, Domain, Segment
             'id' => 1,
             'type' => array_search(get_class($database->getCoreDriver()), self::$types),
             'dsn' => $database->getCoreDriver()->getDsn(),
+            'tier' => 1,
         ]);
     }
 
     public static function getDomain(): string
     {
         return 'sharding';
+    }
+    public static function getIndexes(): array
+    {
+        return [
+            new Index(['tier']),
+        ];
     }
 
     public static function getSegment(): string
@@ -51,6 +60,7 @@ class Storage implements Bootstrap, Domain, Segment
         public string $type,
         public string $dsn,
         public int $flags,
+        public int $tier = 1,
     ) {
     }
 

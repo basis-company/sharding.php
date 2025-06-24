@@ -14,17 +14,23 @@ class Configure implements Job
         public readonly string $class,
         public readonly ?int $shards = null,
         public readonly ?int $replicas = null,
+        public readonly ?int $tier = null,
     ) {
     }
 
     public function replicas(int $replicas): self
     {
-        return new self($this->class, $this->shards, $replicas);
+        return new self($this->class, $this->shards, $replicas, $this->tier);
     }
 
     public function shards(int $shards): self
     {
-        return new self($this->class, $shards, $this->replicas);
+        return new self($this->class, $shards, $this->replicas, $this->tier);
+    }
+
+    public function tier(int $tier): self
+    {
+        return new self($this->class, $this->shards, $this->replicas, $tier);
     }
 
     public function __invoke(Database $database)
@@ -48,6 +54,7 @@ class Configure implements Job
                         'version' => 1,
                         'shards' => $this->shards ?: 1,
                         'replicas' => $this->replicas ?: 0,
+                        'tier' => $this->tier ?: 1,
                         'status' => Topology::READY_STATUS,
                     ]
                 ),
@@ -61,13 +68,10 @@ class Configure implements Job
         $last = array_pop($topologies);
 
         $updates = [];
-
-        if ($this->shards && $this->shards !== $last->shards) {
-            $updates['shards'] = $this->shards;
-        }
-
-        if ($this->replicas && $this->replicas !== $last->replicas) {
-            $updates['replicas'] = $this->replicas;
+        foreach (['shards', 'replicas', 'tier'] as $key) {
+            if ($this->$key && $this->$key !== $last->$key) {
+                $updates[$key] = $this->$key;
+            }
         }
 
         if (count($updates)) {
