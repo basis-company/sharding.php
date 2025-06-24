@@ -13,45 +13,48 @@ class Domain implements Crud
         public readonly string $name,
     ) {
     }
+
     public function create(string $class, array $data): object
     {
-        return $this->database->create($this->name . '.' . $class, $data);
+        return $this->database->create($this->getClass($class), $data);
 
     }
+
     public function delete(string|object $class, array|int|null|string $id = null): ?object
     {
-        if (is_string($class)) {
-            $class = $this->name . '.' . $class;
-        }
-        return $this->database->delete($class, $id);
+        return $this->database->delete($this->getClass($class), $id);
 
     }
+
     public function find(string $class, array $query = []): array
     {
-        return $this->database->find($this->name . '.' . $class, $query);
+        return $this->database->find($this->getClass($class), $query);
 
     }
+
     public function findOne(string $class, array $query): ?object
     {
-        return $this->database->findOne($this->name . '.' . $class, $query);
+        return $this->database->findOne($this->getClass($class), $query);
 
     }
+
     public function findOrCreate(string $class, array $query, array $data = []): object
     {
-        return $this->database->findOrCreate($this->name . '.' . $class, $query, $data);
-
+        return $this->database->findOrCreate($this->getClass($class), $query, $data);
     }
+
     public function findOrFail(string $class, array $query): ?object
     {
-        return $this->database->findOrFail($this->name . '.' . $class, $query);
-
+        return $this->database->findOrFail($this->getClass($class), $query);
     }
+
+    public function getClass(string|object $class): string|object
+    {
+        return is_string($class) ? $this->name . '.' . $class : $class;
+    }
+
     public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
     {
-        if (is_string($class)) {
-            $class = $this->name . '.' . $class;
-        }
-        return $this->database->update($class, $id, $data);
+        return $this->database->update($this->getClass($class), $id, $data);
     }
-
 }
