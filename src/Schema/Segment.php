@@ -38,6 +38,9 @@ class Segment
         return $this->models[$class];
     }
 
+    /**
+     * @return Model[]
+     */
     public function getModels(): array
     {
         return array_map($this->getClassModel(...), $this->getClasses());

@@ -44,6 +44,11 @@ class Runtime implements Driver
         return null;
     }
 
+    public function dropTable(string $table): void
+    {
+        unset($this->data[$table]);
+    }
+
     public function find(string $class, array $query = []): array
     {
         if (!array_key_exists($class, $this->data)) {

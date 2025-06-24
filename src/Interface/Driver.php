@@ -8,6 +8,7 @@ use Basis\Sharding\Select;
 
 interface Driver extends Crud, Tracker
 {
+    public function dropTable(string $table): void;
     public function getDsn(): string;
     public function getUsage(): int;
     public function hasTable(string $table): bool;

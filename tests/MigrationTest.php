@@ -9,6 +9,7 @@ use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Topology;
+use Basis\Sharding\Job\Cleanup;
 use Basis\Sharding\Schema;
 use Basis\Sharding\Job\Configure;
 use Basis\Sharding\Job\Migrate;
@@ -137,5 +138,19 @@ class MigrationTest extends TestCase
 
         $this->assertCount(10, $database->find(Activity::class));
         $this->assertSame($database->findOne(Activity::class, ['id' => $first['id']])->type, 27);
+
+        $stale = $database->find(Bucket::class, ['name' => $buckets[0]->name, 'version' => 1]);
+        $this->assertCount(1, $stale);
+        $staleStorage = $database->getStorage($stale[0]->storage);
+        $this->assertTrue($staleStorage->getDriver()->hasTable('telemetry_activity'));
+
+        $database->dispatch(new Cleanup(Activity::class));
+        $this->assertFalse($staleStorage->getDriver()->hasTable('telemetry_activity'));
+
+        $stale = $database->find(Bucket::class, ['name' => $buckets[0]->name, 'version' => 1]);
+        $this->assertCount(0, $stale);
+
+        $this->expectExceptionMessage("No stale buckets found");
+        $database->dispatch(new Cleanup(Activity::class));
     }
 }

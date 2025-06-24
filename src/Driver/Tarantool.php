@@ -64,6 +64,11 @@ class Tarantool implements Driver
         );
     }
 
+    public function dropTable(string $table): void
+    {
+        $this->mapper->getSpace($table)->drop();
+    }
+
     public function find(string $table, array $query = []): array
     {
         return $this->mapper->find($table, $query);

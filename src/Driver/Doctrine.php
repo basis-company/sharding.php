@@ -64,6 +64,11 @@ class Doctrine implements Driver
         });
     }
 
+    public function dropTable(string $table): void
+    {
+        $this->getConnection()->createSchemaManager()->dropTable($table);
+    }
+
     public function find(string $table, array $query = []): array
     {
         if (!$this->hasTable($table)) {
@@ -270,9 +275,8 @@ class Doctrine implements Driver
 
     public function reset(): self
     {
-        $schema = $this->getConnection()->createSchemaManager();
-        foreach ($schema->listTables() as $table) {
-            $schema->dropTable($table->getName());
+        foreach ($this->getConnection()->createSchemaManager()->listTables() as $table) {
+            $this->dropTable($table->getName());
         }
 
         return $this;
