@@ -11,6 +11,7 @@ use Basis\Sharding\Interface\Domain;
 use Basis\Sharding\Interface\Indexing;
 use Basis\Sharding\Interface\Segment;
 use Basis\Sharding\Schema\UniqueIndex;
+use Exception;
 use Tarantool\Client\Schema\Operations;
 
 class Sequence implements Bootstrap, Domain, Segment, Indexing
@@ -54,14 +55,53 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
         ];
     }
 
-    public static function getNext(Database $database, string $name): int
+    public static function getNext(Database $database, string $table): int
     {
-        $sequence = $database->findOrCreate(self::class, [
-            'name' => $name
-        ], [
-            'name' => $name,
-            'next' => 0,
-        ]);
+        $sequence = $database->findOne(self::class, ['name' => $table]);
+
+        if (!$sequence) {
+            $next = 0;
+            if ($database->schema->hasTable($table)) {
+                $class = $database->schema->getTableClass($table);
+                $buckets = $database->locator->getBuckets($class, []);
+                foreach ($buckets as $bucket) {
+                    if (!$bucket->storage) {
+                        continue;
+                    }
+                    $storage = $database->getStorage($bucket->storage);
+                    $storageTable = $database->schema->getClassModel($class)->getTable($bucket, $storage);
+                    $driver = $storage->getDriver();
+                    if (!$driver->hasTable($storageTable)) {
+                        continue;
+                    }
+                    if ($driver instanceof Doctrine) {
+                        [$max] = $driver->query("select max(id) from $storageTable");
+                        $next = max($next, $max['max'] ?: 0);
+                    }
+                    if ($driver instanceof Runtime) {
+                        $rows = array_reverse($driver->find($storageTable));
+                        if (count($rows)) {
+                            $next = max($next, $rows[0]['id']);
+                        }
+                    }
+                    if ($driver instanceof Tarantool) {
+                        try {
+                            $max = $driver->query("return box.space.$storageTable.index[1]:max()");
+                            if (count($max)) {
+                                $next = max($next, $max[0][0]);
+                            }
+                        } catch (Exception) {}
+                    }
+                }
+
+            }
+            $sequence = $database->findOrCreate(self::class, [
+                'name' => $table
+            ], [
+                'name' => $table,
+                'next' => $next,
+            ]);
+        }
 
         $driver = $database->getCoreDriver();
 

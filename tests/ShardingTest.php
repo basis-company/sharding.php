@@ -86,9 +86,9 @@ class ShardingTest extends TestCase
         $schema = new Schema();
         $database = new Database(new Runtime(), $schema);
 
+        $database->create(Storage::class, ['type' => 'runtime']);
         $schema->register(Activity::class);
         $topology = $database->dispatch((new Configure(Activity::class))->replicas(1));
-        $database->create(Storage::class, ['type' => 'runtime']);
 
         array_map($database->delete(...), $database->find(Bucket::class, ['name' => $topology->name]));
         $this->assertCount(1, $database->getBuckets(Activity::class, []));

@@ -182,6 +182,10 @@ class Database implements Crud
             }
         }
 
+        if (!array_key_exists($storageId, $this->storages)) {
+            throw new Exception("Storage $storageId not found");
+        }
+
         return $this->storages[$storageId];
     }
 
