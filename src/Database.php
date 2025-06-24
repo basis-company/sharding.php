@@ -64,6 +64,10 @@ class Database implements Crud
             $data['id'] = $this->generateId($class);
         }
 
+        if ($class == Storage::class) {
+            $this->storages = [];
+        }
+
         return $this->fetchOne($class)
             ->from($data, writable: true, multiple: false)
             ->using(function (Driver $driver, string $table) use ($data) {
@@ -174,11 +178,14 @@ class Database implements Crud
     {
         if (!count($this->storages)) {
             foreach ($this->find(Storage::class) as $storage) {
+                $this->storages[$storage->id] = $storage;
+                if ($storage->hasDriver()) {
+                    continue;
+                }
                 if ($storage->id == 1) {
                     $storage->setDriver($this->driver);
                 }
                 $storage->getDriver()->setContext($this->getContext(...));
-                $this->storages[$storage->id] = $storage;
             }
         }
 

@@ -62,9 +62,14 @@ class Storage implements Bootstrap, Domain, Segment
         return $this->driver;
     }
 
+    public function hasDriver(): bool
+    {
+        return $this->driver !== null;
+    }
+
     public function setDriver(Driver $driver): void
     {
-        if ($this->driver !== null) {
+        if ($this->hasDriver()) {
             throw new Exception('Driver already set');
         }
         $this->driver = $driver;
