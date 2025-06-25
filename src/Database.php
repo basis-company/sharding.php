@@ -218,6 +218,27 @@ class Database implements Crud
         return new Query($this, $buckets);
     }
 
+    public function select(string $class): Select
+    {
+        return new Select(function (Select $global) use ($class) {
+            $result = [];
+            foreach ($this->getBuckets($class) as $bucket) {
+                $storage = $this->getStorage($bucket->storage);
+                $table = $this->schema->getClassModel($class)->getTable($bucket, $storage);
+                $select = $storage->getDriver()->select($table);
+                $select->conditions = $global->conditions;
+                $select->limit = $global->limit;
+                foreach ($select->toArray() as $row) {
+                    $result[] = $this->factory->getInstance($class, $row);
+                    if (count($result) >= $global->limit) {
+                        break 2;
+                    }
+                }
+            }
+            return $result;
+        });
+    }
+
     public function setContext(array|callable $context): void
     {
         $this->context = $context;

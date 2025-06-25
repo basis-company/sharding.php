@@ -34,5 +34,25 @@ class SelectTest extends TestCase
         $posts = $driver->select('test_post')->where('id')->equals(2)->limit(1)->toArray();
         $this->assertCount(1, $posts);
         $this->assertSame("2", array_pop($posts)->name);
+
+        $this->assertCount(1, $database->select(Post::class)->limit(1));
+        $this->assertCount(2, $database->select(Post::class)->limit(2));
+        $this->assertCount(3, $database->select(Post::class)->limit(3));
+        $posts = $database->select(Post::class)->limit(3)->toArray();
+        $this->assertSame("3", array_pop($posts)->name);
+        $this->assertInstanceOf(Post::class, array_pop($posts));
+
+        $posts = $database->select(Post::class)->where("id")->isGreaterThan(2)->limit(1)->toArray();
+        $this->assertCount(1, $posts);
+        $this->assertSame("3", array_pop($posts)->name);
+
+
+        $posts = $database->select(Post::class)->where("id")->isGreaterThan(2)->limit(2)->toArray();
+        $this->assertCount(2, $posts);
+        $this->assertSame(["3", "4"], array_map(fn ($post) => $post->name, $posts));
+
+        $posts = $database->select(Post::class)->where('id')->equals(2)->limit(1)->toArray();
+        $this->assertCount(1, $posts);
+        $this->assertSame("2", array_pop($posts)->name);
     }
 }
