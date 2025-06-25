@@ -2,6 +2,8 @@
 
 namespace Basis\Sharding\Interface;
 
+use Basis\Sharding\Select;
+
 interface Crud
 {
     public function create(string $class, array $data): object;
@@ -10,5 +12,6 @@ interface Crud
     public function findOne(string $class, array $query): ?object;
     public function findOrCreate(string $class, array $query, array $data = []): object;
     public function findOrFail(string $class, array $query): ?object;
+    public function select(string $table): Select;
     public function update(string|object $class, array|int|string $id, ?array $data = null): ?object;
 }

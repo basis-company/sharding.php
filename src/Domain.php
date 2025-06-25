@@ -53,6 +53,11 @@ class Domain implements Crud
         return is_string($class) ? $this->name . '.' . $class : $class;
     }
 
+    public function select(string $table): Select
+    {
+        return $this->database->select($this->getClass($table));
+    }
+
     public function update(string|object $class, array|int|string $id, ?array $data = null): ?object
     {
         return $this->database->update($this->getClass($class), $id, $data);
