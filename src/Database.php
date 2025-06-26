@@ -133,6 +133,8 @@ class Database implements Crud
             return $instance;
         }
 
+        $data = array_merge($query, $data);
+
         if (property_exists($class, 'id') && (!array_key_exists('id', $data) || !$data['id'])) {
             $data = array_merge($data, ['id' => $this->generateId($class)]);
         }
@@ -142,7 +144,6 @@ class Database implements Crud
                 $data[$k] = $v;
             }
         }
-
 
         return $this->fetchOne($class)
             ->from($data, writable: true, multiple: false)
