@@ -14,13 +14,25 @@ class Select implements Iterator
      * @var Where[]
      */
     public array $conditions = [];
+    public bool $orderByAscending = true;
     public int $limit = 0;
+    public string $orderBy = '';
 
     public ?ArrayIterator $iterator = null;
 
     public function __construct(
         public readonly Closure $callback,
     ) {
+    }
+
+    public function asc(string $field): self
+    {
+        return $this->orderBy($field, true);
+    }
+
+    public function desc(string $field): self
+    {
+        return $this->orderBy($field, false);
     }
 
     public function limit(int $limit): self
@@ -33,6 +45,14 @@ class Select implements Iterator
     {
         $parent = array_key_exists($field, $this->conditions) ? $this->conditions[$field] : null;
         return $this->conditions[$field] = new Where($this, $parent);
+    }
+
+    public function orderBy(string $field, bool $ascending = true): self
+    {
+        $this->orderBy = $field;
+        $this->orderByAscending = $ascending;
+
+        return $this;
     }
 
     public function getIterator(): ArrayIterator

@@ -23,13 +23,22 @@ class SelectTest extends TestCase
         $posts = $driver->select('test_post')->limit(3)->toArray();
         $this->assertSame("3", array_pop($posts)->name);
 
-        $posts = $driver->select('test_post')->where("id")->isGreaterThan(2)->limit(1)->toArray();
+        $posts = $driver->select('test_post')->where('id')->isGreaterThan(2)->limit(1)->toArray();
         $this->assertCount(1, $posts);
         $this->assertSame("3", array_pop($posts)->name);
 
-        $posts = $driver->select('test_post')->where("id")->isGreaterThan(2)->limit(2)->toArray();
+        $posts = $driver->select('test_post')->where('id')->isGreaterThan(2)->limit(2)->toArray();
         $this->assertCount(2, $posts);
         $this->assertSame(["3", "4"], array_map(fn ($post) => $post->name, $posts));
+
+        $posts = $driver->select('test_post')->where('id')->isLessThan(2)->desc('id')->limit(1)->toArray();
+        $posts = $driver->select('test_post')->where('id')->isLessThan(2)->desc('id')->limit(1)->toArray();
+        $this->assertCount(1, $posts);
+        $this->assertSame(["1"], array_map(fn ($post) => $post->name, $posts));
+
+        $posts = $driver->select('test_post')->where('id')->isLessThan(3)->desc('id')->limit(1)->toArray();
+        $this->assertCount(1, $posts);
+        $this->assertSame(["2"], array_map(fn ($post) => $post->name, $posts));
 
         $posts = $driver->select('test_post')->where('id')->equals(2)->limit(1)->toArray();
         $this->assertCount(1, $posts);
@@ -42,12 +51,12 @@ class SelectTest extends TestCase
         $this->assertSame("3", array_pop($posts)->name);
         $this->assertInstanceOf(Post::class, array_pop($posts));
 
-        $posts = $database->select(Post::class)->where("id")->isGreaterThan(2)->limit(1)->toArray();
+        $posts = $database->select(Post::class)->where('id')->isGreaterThan(2)->limit(1)->toArray();
         $this->assertCount(1, $posts);
         $this->assertSame("3", array_pop($posts)->name);
 
 
-        $posts = $database->select(Post::class)->where("id")->isGreaterThan(2)->limit(2)->toArray();
+        $posts = $database->select(Post::class)->where('id')->isGreaterThan(2)->limit(2)->toArray();
         $this->assertCount(2, $posts);
         $this->assertSame(["3", "4"], array_map(fn ($post) => $post->name, $posts));
 

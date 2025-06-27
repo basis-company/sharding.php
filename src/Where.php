@@ -6,9 +6,9 @@ namespace Basis\Sharding;
 
 class Where
 {
-    public null|int|string $isGreaterThan = null;
     public null|int|string $equals = null;
-
+    public null|int|string $isGreaterThan = null;
+    public null|int|string $isLessThan = null;
     public function __construct(
         public readonly Select $select,
         public readonly ?Where $parent = null,
@@ -32,6 +32,12 @@ class Where
     public function isGreaterThan(int|string $value): Select
     {
         $this->isGreaterThan = $value;
+        return $this->select;
+    }
+
+    public function isLessThan(int|string $value): Select
+    {
+        $this->isLessThan = $value;
         return $this->select;
     }
 }

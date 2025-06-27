@@ -292,11 +292,19 @@ class Doctrine implements Driver
                         $query->andWhere($field . ' > :' . $field);
                         $query->setParameter($field, $condition->isGreaterThan);
                     }
+                    if ($condition->isLessThan !== null) {
+                        $query->andWhere($field . ' < :' . $field);
+                        $query->setParameter($field, $condition->isLessThan);
+                    }
                     if ($condition->equals !== null) {
                         $query->andWhere($field . ' = :' . $field);
                         $query->setParameter($field, $condition->equals);
                     }
                 }
+            }
+
+            if ($select->orderBy) {
+                $query->orderBy($select->orderBy, $select->orderByAscending ? 'asc' : 'desc');
             }
 
             return array_map(fn ($row) => (object) $row, $query->setMaxResults($select->limit)->fetchAllAssociative());

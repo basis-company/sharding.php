@@ -238,10 +238,21 @@ class Runtime implements Driver
     {
         return new Select(function (Select $select) use ($table) {
             $result = [];
-            foreach ($this->find($table) as $row) {
+            $rows = $this->find($table);
+            if ($select->orderBy) {
+                if ($select->orderBy == 'id' && !$select->orderByAscending) {
+                    $rows = array_reverse($rows);
+                } else {
+                    throw new Exception('Order by not implemented');
+                }
+            }
+            foreach ($rows as $row) {
                 foreach ($select->conditions as $field => $where) {
                     foreach ($where->getConditions() as $condition) {
                         if ($condition->isGreaterThan !== null && $row[$field] <= $condition->isGreaterThan) {
+                            continue 3;
+                        }
+                        if ($condition->isLessThan !== null && $row[$field] >= $condition->isLessThan) {
                             continue 3;
                         }
                         if ($condition->equals !== null && $row[$field] != $condition->equals) {

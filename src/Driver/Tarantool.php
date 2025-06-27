@@ -273,6 +273,12 @@ class Tarantool implements Driver
                 if ($condition->isGreaterThan !== null) {
                     $criteria = $criteria->andGtIterator()->andKey([$condition->isGreaterThan]);
                 }
+                if ($condition->isLessThan !== null) {
+                    $criteria = $criteria->andLtIterator()->andKey([$condition->isLessThan]);
+                    if ($select->orderBy !== 'id' || $select->orderByAscending) {
+                        throw new Exception("Unordered query not supported");
+                    }
+                }
                 if ($condition->equals !== null) {
                     $criteria = $criteria->andEqIterator()->andKey([$condition->equals]);
                 }
