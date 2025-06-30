@@ -86,7 +86,7 @@ class Sequence implements Bootstrap, Domain, Segment, Indexing
                     }
                     if ($driver instanceof Tarantool) {
                         try {
-                            $max = $driver->query("return box.space.$storageTable.index[1]:max()");
+                            $max = $driver->query("return box.space.$storageTable.index.id:max()");
                             if (count($max)) {
                                 $next = max($next, $max[0][0]);
                             }
