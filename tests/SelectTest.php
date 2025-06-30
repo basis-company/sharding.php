@@ -5,6 +5,7 @@ namespace Basis\Sharding\Test;
 use Basis\Sharding\Database;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Test\Entity\Post;
+use Basis\Sharding\Test\Entity\Stage;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 
@@ -63,5 +64,13 @@ class SelectTest extends TestCase
         $posts = $database->select(Post::class)->where('id')->equals(2)->limit(1)->toArray();
         $this->assertCount(1, $posts);
         $this->assertSame("2", array_pop($posts)->name);
+
+        $database->schema->register(Stage::class);
+        $database->create(Stage::class, ['year' => 2021]);
+        $database->create(Stage::class, ['year' => 2022]);
+        $database->create(Stage::class, ['year' => 2023]);
+
+        [$post] = $database->select(Stage::class)->where('year')->isLessThan(2023)->desc('year')->limit(1)->toArray();
+        $this->assertSame(2022, $post->year);
     }
 }

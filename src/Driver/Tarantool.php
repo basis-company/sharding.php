@@ -275,7 +275,7 @@ class Tarantool implements Driver
                 }
                 if ($condition->isLessThan !== null) {
                     $criteria = $criteria->andLtIterator()->andKey([$condition->isLessThan]);
-                    if ($select->orderBy !== 'id' || $select->orderByAscending) {
+                    if (count($fields) != 1 || $select->orderBy !== $fields[0] || $select->orderByAscending) {
                         throw new Exception("Unordered query not supported");
                     }
                 }

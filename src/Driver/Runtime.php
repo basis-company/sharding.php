@@ -240,11 +240,9 @@ class Runtime implements Driver
             $result = [];
             $rows = $this->find($table);
             if ($select->orderBy) {
-                if ($select->orderBy == 'id' && !$select->orderByAscending) {
-                    $rows = array_reverse($rows);
-                } else {
-                    throw new Exception('Order by not implemented');
-                }
+                usort($rows, function ($a, $b) use ($select) {
+                    return ($select->orderByAscending ? 1 : -1 ) * ($a[$select->orderBy] <=> $b[$select->orderBy]);
+                });
             }
             foreach ($rows as $row) {
                 foreach ($select->conditions as $field => $where) {

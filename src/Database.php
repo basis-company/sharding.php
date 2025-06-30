@@ -229,6 +229,8 @@ class Database implements Crud
                 $select = $storage->getDriver()->select($table);
                 $select->conditions = $global->conditions;
                 $select->limit = $global->limit;
+                $select->orderBy = $global->orderBy;
+                $select->orderByAscending = $global->orderByAscending;
                 foreach ($select->toArray() as $row) {
                     $result[] = $this->factory->getInstance($class, $row);
                     if (count($result) >= $global->limit) {
