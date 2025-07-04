@@ -62,7 +62,7 @@ class Segment
     public function isSharded(): bool
     {
         foreach ($this->models as $model) {
-            if ($model->isSharded()) {
+            if ($model->isSharded() || $model->hasTier()) {
                 return true;
             }
         }

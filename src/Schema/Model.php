@@ -4,6 +4,7 @@ namespace Basis\Sharding\Schema;
 
 use Basis\Sharding\Attribute\Caching;
 use Basis\Sharding\Attribute\Sharding as ShardingAttribute;
+use Basis\Sharding\Attribute\Tier as TierAttribute;
 use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Interface\Indexing;
@@ -26,6 +27,7 @@ class Model
     private array $properties = [];
 
     private bool $isSharded = false;
+    private string $tier = '';
     private ?Caching $cache = null;
 
     public function __construct(
@@ -63,6 +65,10 @@ class Model
             $this->isSharded = true;
         } elseif (count($reflection->getAttributes(ShardingAttribute::class))) {
             $this->isSharded = true;
+        }
+
+        if (count($reflection->getAttributes(TierAttribute::class))) {
+            $this->tier = $reflection->getAttributes(TierAttribute::class)[0]->newInstance()->name;
         }
 
         $this->indexes[] = new UniqueIndex([$this->properties[0]->name]);
@@ -134,8 +140,18 @@ class Model
         return $this->cache;
     }
 
+    public function getTier(): string
+    {
+        return $this->tier;
+    }
+
     public function isSharded(): bool
     {
         return $this->isSharded;
+    }
+
+    public function hasTier(): bool
+    {
+        return $this->tier != '';
     }
 }

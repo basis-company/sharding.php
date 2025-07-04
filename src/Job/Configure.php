@@ -4,6 +4,7 @@ namespace Basis\Sharding\Job;
 
 use Basis\Sharding\Database;
 use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Tier;
 use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Interface\Job;
 use Exception;
@@ -42,6 +43,9 @@ class Configure implements Job
             if (!$database->schema->getSegmentByName($name)->isSharded()) {
                 throw new Exception("Invalid topology name: $name");
             }
+            if ($this->tier === null && $tier = $database->schema->getClassModel($this->class)->getTier()) {
+                $tier = $database->findOrCreate(Tier::class, ['name' => $tier])->id;
+            }
             $topologies = [
                 $database->findOrCreate(
                     Topology::class,
@@ -54,7 +58,7 @@ class Configure implements Job
                         'version' => 1,
                         'shards' => $this->shards ?: 1,
                         'replicas' => $this->replicas ?: 0,
-                        'tier' => $this->tier ?: 1,
+                        'tier' => $this->tier ?: $tier ?: 1,
                         'status' => Topology::READY_STATUS,
                     ]
                 ),

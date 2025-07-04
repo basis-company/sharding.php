@@ -196,7 +196,8 @@ class Locator implements LocatorInterface, ShardingInterface
             return null;
         }
 
-        if (!$this->database->schema->getClassModel($class)->isSharded()) {
+        $model = $this->database->schema->getClassModel($class);
+        if (!$model->isSharded() && !$model->hasTier()) {
             return null;
         }
 
