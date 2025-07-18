@@ -35,6 +35,12 @@ class Database implements Crud
         }
 
         $driver->setContext($this->getContext(...));
+
+        $factory->afterCreate(function ($instance) {
+            if (method_exists($instance, 'setShardingDatabase')) {
+                $instance->setShardingDatabase($this);
+            }
+        });
     }
 
     public function cache(string $method, array $arguments, callable $callback)
