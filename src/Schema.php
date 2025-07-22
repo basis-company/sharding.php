@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Basis\Sharding;
 
+use Basis\Sharding\Attribute\Reference;
 use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Sequence;
 use Basis\Sharding\Entity\Storage;
@@ -21,6 +22,8 @@ class Schema
 {
     public array $classes = [];
     public array $segments = [];
+    public array $references = [];
+    public array $collections = [];
 
     public array $classSegment = [];
     public array $tableClass = [];
@@ -33,6 +36,35 @@ class Schema
         $this->register(Storage::class);
         $this->register(Tier::class);
         $this->register(Topology::class);
+    }
+
+    public function addReference(Reference $reference): void
+    {
+        $this->references[] = $reference;
+    }
+
+    public function getCollection(string $class, string $name): ?array
+    {
+        if (!count($this->collections)) {
+            foreach ($this->references as $reference) {
+                if (class_exists($reference->destination)) {
+                    $this->collections[] = [
+                        'class' => $reference->destination,
+                        'destination' => $reference->model,
+                        'name' => (new ReflectionClass($reference->model))->getShortName(),
+                        'property' => $reference->property,
+                    ];
+                }
+            }
+        }
+
+        foreach ($this->collections as $collection) {
+            if ($collection['class'] == $class && $collection['name'] == $name) {
+                return $collection;
+            }
+        }
+
+        return null;
     }
 
     public function getClassModel(string $class): ?Model
@@ -51,6 +83,28 @@ class Schema
     public function getClassTable(string $class): string
     {
         return $this->getSegmentByName($this->classSegment[$class])->getTable($class);
+    }
+
+    public function getReference(string $class, string $property): ?array
+    {
+        $property = self::toUnderscore($property);
+
+        foreach ($this->references as $reference) {
+            if ($reference->model == $class && $reference->property == $property) {
+                $destination = $reference->destination;
+                if (!class_exists($destination) && !str_contains($destination, '.')) {
+                    // local entity domain
+                    $destination = $this->getClassSegment($reference->model)->domain . '.' . $destination;
+                }
+
+                return [
+                    'class' => $destination,
+                    'property' => $property,
+                ];
+            }
+        }
+
+        return null;
     }
 
     public function getSegmentByName(string $name, bool $create = true): Segment
@@ -132,6 +186,16 @@ class Schema
         $table = $segment->getTable($class);
         $this->tableSegment[$table] = $key;
         $this->tableClass[$table] = $class;
+
+        foreach ($segment->getClassModel($class)->getReferences() as $reference) {
+            $this->collections = [];
+            $this->addReference(clone $reference);
+        }
+    }
+
+    public static function toCamelCase(string $string)
+    {
+        return implode('', array_map(ucfirst(...), explode('_', $string)));
     }
 
     public static function toUnderscore(string $string)

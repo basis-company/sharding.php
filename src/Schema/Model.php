@@ -3,6 +3,7 @@
 namespace Basis\Sharding\Schema;
 
 use Basis\Sharding\Attribute\Caching;
+use Basis\Sharding\Attribute\Reference;
 use Basis\Sharding\Attribute\Sharding as ShardingAttribute;
 use Basis\Sharding\Attribute\Tier as TierAttribute;
 use Basis\Sharding\Entity\Bucket;
@@ -25,6 +26,7 @@ class Model
      * @var Property[]
      */
     private array $properties = [];
+    private array $references = [];
 
     private bool $isSharded = false;
     private string $tier = '';
@@ -38,9 +40,14 @@ class Model
         if (count($reflection->getAttributes(Caching::class))) {
             $this->cache = $reflection->getAttributes(Caching::class)[0]->newInstance();
         }
+
         foreach ($reflection->getConstructor()?->getParameters() ?: [] as $parameter) {
+            foreach ($parameter->getAttributes(Reference::class) as $reference) {
+                $this->references[] = $reference->newInstance()->setSource($class, $parameter->getName());
+            }
             $this->properties[] = new Property($parameter->getName(), $parameter->getType()->getName());
         }
+
         if (!count($this->properties)) {
             foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
                 if ($property->hasType()) {
@@ -123,6 +130,11 @@ class Model
     public function getProperties(): array
     {
         return $this->properties;
+    }
+
+    public function getReferences(): array
+    {
+        return $this->references;
     }
 
     public function getTable(?Bucket $bucket = null, ?Storage $storage = null): string
