@@ -10,7 +10,7 @@ use Basis\Sharding\Interface\Job;
 use Basis\Sharding\Interface\Locator;
 use Exception;
 
-class Migrate implements Job
+class Upgrade implements Job
 {
     public function __construct(
         public readonly string $class,

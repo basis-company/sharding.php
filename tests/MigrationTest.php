@@ -12,7 +12,7 @@ use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Job\Cleanup;
 use Basis\Sharding\Schema;
 use Basis\Sharding\Job\Configure;
-use Basis\Sharding\Job\Migrate;
+use Basis\Sharding\Job\Upgrade;
 use Basis\Sharding\Test\Entity\Activity;
 use Exception;
 use PHPUnit\Framework\TestCase;
@@ -62,7 +62,7 @@ class MigrationTest extends TestCase
         }
 
         $this->assertCount(2, $database->find(Topology::class));
-        $database->dispatch(new Migrate(Activity::class, pageSize: 1, iterations: 1));
+        $database->dispatch(new Upgrade(Activity::class, pageSize: 1, iterations: 1));
         $buckets = $database->getBuckets(Activity::class);
         $this->assertSame($buckets[0]->version, 1);
 
@@ -96,7 +96,7 @@ class MigrationTest extends TestCase
             ...array_map(fn($storage) => $storage->find('telemetry_activity'), $writableStorages)
         );
 
-        $database->dispatch(new Migrate(Activity::class, pageSize: 2, iterations: 1));
+        $database->dispatch(new Upgrade(Activity::class, pageSize: 2, iterations: 1));
 
         $this->assertCount(3, array_merge(
             ...array_map(fn($storage) => $storage->find('telemetry_activity'), $writableStorages)
@@ -105,7 +105,7 @@ class MigrationTest extends TestCase
             ...array_map(fn($storage) => $storage->find('telemetry_activity'), $readableStorages)
         ));
 
-        $database->dispatch(new Migrate(Activity::class, pageSize: 2, iterations: 2));
+        $database->dispatch(new Upgrade(Activity::class, pageSize: 2, iterations: 2));
         $this->assertCount(7, array_merge(
             ...array_map(fn($storage) => $storage->find('telemetry_activity'), $writableStorages)
         ));
@@ -118,7 +118,7 @@ class MigrationTest extends TestCase
         $this->assertSame($database->findOne(Activity::class, ['id' => $first['id']])->type, 27);
 
         // final migration
-        $database->dispatch(new Migrate(Activity::class));
+        $database->dispatch(new Upgrade(Activity::class));
 
         $buckets = $database->getBuckets(Activity::class);
         $writable = $database->getBuckets(Activity::class, writable: true);

@@ -7,7 +7,7 @@ use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Tier;
 use Basis\Sharding\Job\Configure;
-use Basis\Sharding\Job\Migrate;
+use Basis\Sharding\Job\Upgrade;
 use Basis\Sharding\Test\Entity\Event;
 use Basis\Sharding\Test\Entity\Stage;
 use PHPUnit\Framework\TestCase;
@@ -32,7 +32,7 @@ class TierTest extends TestCase
         $this->assertSame($bucket->storage, $default->id);
 
         $database->dispatch(new Configure(Stage::class, tier: $cold->id));
-        $database->dispatch(new Migrate(Stage::class));
+        $database->dispatch(new Upgrade(Stage::class));
 
         [$bucket] = $database->getBuckets(Stage::class, []);
         $this->assertSame($bucket->storage, $cold->id);
