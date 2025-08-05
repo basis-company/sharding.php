@@ -7,6 +7,7 @@ use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Indexing;
 use Basis\Sharding\Interface\Segment;
 use Basis\Sharding\Database;
+use Basis\Sharding\Schema\Index;
 use Basis\Sharding\Schema\UniqueIndex;
 
 #[Caching]
@@ -50,6 +51,7 @@ class Bucket implements Bootstrap, Segment, Indexing
     {
         return [
             new UniqueIndex(['name', 'version', 'shard', 'replica']),
+            new Index(['storage']),
         ];
     }
 
