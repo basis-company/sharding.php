@@ -47,7 +47,7 @@ class Storage implements Bootstrap, Domain, Segment, Indexing
     {
         return [
             new Index(['tier']),
-            new Index(['dsn']),
+            new Index(['type', 'dsn']),
         ];
     }
 
