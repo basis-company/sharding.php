@@ -10,6 +10,7 @@ use Basis\Sharding\Schema;
 use Basis\Sharding\Test\Entity\Event;
 use Basis\Sharding\Test\Entity\Post;
 use Basis\Sharding\Test\Entity\PostTag;
+use Basis\Sharding\Test\Entity\TagLabel;
 use Basis\Sharding\Test\Entity\User;
 use Exception;
 use PHPUnit\Framework\TestCase;
@@ -39,6 +40,7 @@ class TraitsTest extends TestCase
         $database->schema->register(Event::class);
         $database->schema->register(Post::class);
         $database->schema->register(PostTag::class);
+        $database->schema->register(TagLabel::class);
         $database->schema->register(User::class);
 
         $nekufa = $database->create(User::class, ['name' => 'nekufa']);
@@ -77,11 +79,14 @@ class TraitsTest extends TestCase
 
         $this->assertCount(0, $last->getPostTagCollection());
 
+        $label = $database->create(TagLabel::class, ['label' => 'test']);
+
         $database->create(PostTag::class, [
             'post' => $last->id,
-            'tag' => 'test',
+            'tagLabel' => $label->id,
         ]);
 
         $this->assertCount(1, $last->getPostTagCollection());
+        $this->assertSame($last->getPostTagCollection()[0]->getTagLabel(), $label);
     }
 }

@@ -10,17 +10,14 @@ use Basis\Sharding\Interface\Segment;
 use Basis\Sharding\Trait\ActiveRecord;
 use Basis\Sharding\Trait\References;
 
-class PostTag implements Segment
+class TagLabel implements Segment
 {
     use ActiveRecord;
     use References;
 
     public function __construct(
         public int $id,
-        #[Reference(Post::class)]
-        public int $post,
-        #[Reference(TagLabel::class)]
-        public int $tagLabel,
+        public string $label,
     ) {
     }
 

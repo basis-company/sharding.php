@@ -90,7 +90,7 @@ class Schema
         $property = self::toUnderscore($property);
 
         foreach ($this->references as $reference) {
-            if ($reference->model == $class && $reference->property == $property) {
+            if ($reference->model == $class && self::toUnderscore($reference->property) == $property) {
                 $destination = $reference->destination;
                 if (!class_exists($destination) && !str_contains($destination, '.')) {
                     // local entity domain
@@ -99,7 +99,7 @@ class Schema
 
                 return [
                     'class' => $destination,
-                    'property' => $property,
+                    'property' => $reference->property,
                 ];
             }
         }
