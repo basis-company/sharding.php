@@ -6,8 +6,10 @@ use Basis\Sharding\Attribute\Reference;
 use Basis\Sharding\Database;
 use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Entity\Storage;
+use Basis\Sharding\Schema;
 use Basis\Sharding\Test\Entity\Event;
 use Basis\Sharding\Test\Entity\Post;
+use Basis\Sharding\Test\Entity\PostTag;
 use Basis\Sharding\Test\Entity\User;
 use Exception;
 use PHPUnit\Framework\TestCase;
@@ -36,6 +38,7 @@ class TraitsTest extends TestCase
         $database = new Database(new Runtime());
         $database->schema->register(Event::class);
         $database->schema->register(Post::class);
+        $database->schema->register(PostTag::class);
         $database->schema->register(User::class);
 
         $nekufa = $database->create(User::class, ['name' => 'nekufa']);
@@ -71,5 +74,14 @@ class TraitsTest extends TestCase
         // references without attributes
         $database->schema->addReference(Reference::create(User::class, 'parent', User::class));
         $this->assertSame($bazyaba->getParent(), $nekufa);
+
+        $this->assertCount(0, $last->getPostTagCollection());
+
+        $database->create(PostTag::class, [
+            'post' => $last->id,
+            'tag' => 'test',
+        ]);
+
+        $this->assertCount(1, $last->getPostTagCollection());
     }
 }
