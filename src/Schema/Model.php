@@ -78,7 +78,11 @@ class Model
             $this->tier = $reflection->getAttributes(TierAttribute::class)[0]->newInstance()->name;
         }
 
-        $this->indexes[] = new UniqueIndex([$this->properties[0]->name]);
+        foreach($this->properties as $property) {
+            if (strtolower($property->name) === 'id') {
+                $this->indexes[] = new UniqueIndex([$property->name]);
+            }
+        }
         if (is_a($class, Indexing::class, true)) {
             $this->indexes = array_merge($this->indexes, $class::getIndexes());
         } elseif (method_exists($class, 'initSchema')) {
@@ -98,6 +102,7 @@ class Model
     public function append(string $class)
     {
         if (class_exists(Repository::class, false) && is_a($class, Repository::class, true)) {
+            $existUniqueIndexes = false;
             foreach ((new $class())->indexes as $index) {
                 if (array_is_list($index)) {
                     $index = [
@@ -105,9 +110,30 @@ class Model
                     ];
                 }
                 if (!array_key_exists('unique', $index)) {
-                    $index['unique'] = false;
+                    $index['unique'] = true;
+                    $existUniqueIndexes = true;
+                } elseif (array_key_exists('unique', $index) && $index['unique'] == true) {
+                    $existUniqueIndexes = true;
                 }
-                $this->indexes[] = new Index($index['fields'], $index['unique']);
+                $indexAlreadyExists = function($indexFields) {
+                    foreach($this->indexes as $index) {
+                        if ($index->fields == $indexFields) {
+                            return true;
+                        }
+                        return false;
+                    }
+                };
+                if (!$indexAlreadyExists($index['fields'])) {
+                    $this->indexes[] = new Index($index['fields'], $index['unique']);
+                }
+            }
+            foreach($this->indexes as $currentIndex) {
+                if ($currentIndex->unique == true) {
+                    $existUniqueIndexes = true;
+                }
+            }
+            if (!$existUniqueIndexes) {
+                throw new \Exception('No unique index is set for ' . $class);
             }
         }
     }
