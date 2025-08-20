@@ -34,8 +34,11 @@ class Fetch
         return $this;
     }
 
-    public function query(string $query, array $params = []): array
+    public function query(string $query, array $params = []): array|object|null
     {
+        if (!$this->buckets && $this->class) {
+            $this->from([]);
+        }
         if (!$this->buckets) {
             throw new Exception("No buckets defined");
         }
@@ -53,11 +56,19 @@ class Fetch
                 $result = array_merge($result, $bucketResult);
             }
             if ($this->first && count($result)) {
-                if (array_is_list($result)) {
-                    return $result[0];
-                }
-                return $result;
+                break;
             }
+        }
+        if ($this->class) {
+            if (!$this->first) {
+                // query result is array of tuples
+                $result = $result[0];
+            }
+            $result = array_map(fn($row) => $this->database->factory->getInstance($this->class, $row), $result);
+        }
+
+        if ($this->first) {
+            return count($result) ? $result[0] : null;
         }
 
         return $result;

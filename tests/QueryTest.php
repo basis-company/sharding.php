@@ -122,6 +122,24 @@ class QueryTest extends TestCase
             $this->assertArrayHasKey('name', $space);
             $this->assertSame('_vspace', $space['name']);
 
+            $bucket = $database->fetchOne(Bucket::class)
+                ->query("return box.space.sharding_bucket:get(0)");
+
+            $this->assertNull($bucket);
+
+            $bucket = $database->fetchOne(Bucket::class)
+                ->query("return box.space.sharding_bucket:get(2)");
+
+            $this->assertNotNull($bucket);
+            $this->assertInstanceOf(Bucket::class, $bucket);
+            $this->assertSame($bucket->id, 2);
+
+            $buckets = $database->fetch(Bucket::class)
+                ->query("return box.space.sharding_bucket:select()");
+
+            $this->assertNotEmpty($buckets);
+            $this->assertInstanceOf(Bucket::class, $buckets[0]);
+
         } else {
             $this->markTestSkipped(get_class($driver) . ' is not supported');
         }
