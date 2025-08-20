@@ -102,30 +102,24 @@ class Model
     public function append(string $class)
     {
         if (class_exists(Repository::class, false) && is_a($class, Repository::class, true)) {
-            $existUniqueIndexes = false;
             foreach ((new $class())->indexes as $index) {
                 if (array_is_list($index)) {
                     $index = [
                         'fields' => $index,
                     ];
                 }
+
                 if (!array_key_exists('unique', $index)) {
                     $index['unique'] = true;
-                    $existUniqueIndexes = true;
-                } elseif (array_key_exists('unique', $index) && $index['unique'] == true) {
-                    $existUniqueIndexes = true;
                 }
+
                 if (!$this->indexAlreadyExists($index)) {
                     $this->indexes[] = new Index($index['fields'], $index['unique']);
                 }
             }
-            foreach($this->indexes as $currentIndex) {
-                if ($currentIndex->unique == true) {
-                    $existUniqueIndexes = true;
-                }
-            }
-            if (!$existUniqueIndexes) {
-                throw new \Exception('No unique index is set for ' . $class);
+
+            if (!count($this->indexes) || !$this->indexes[0]->unique) {
+                throw new \Exception('No primary key is set for ' . $class);
             }
         }
     }
