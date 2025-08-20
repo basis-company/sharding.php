@@ -80,8 +80,8 @@ class Model
 
         foreach($this->properties as $property) {
             if (strtolower($property->name) === 'id') {
-                $this->indexes[] = new UniqueIndex([$property->name]);
-            }
+            $this->indexes[] = new UniqueIndex([$property->name]);
+}
         }
         if (is_a($class, Indexing::class, true)) {
             $this->indexes = array_merge($this->indexes, $class::getIndexes());
@@ -115,15 +115,7 @@ class Model
                 } elseif (array_key_exists('unique', $index) && $index['unique'] == true) {
                     $existUniqueIndexes = true;
                 }
-                $indexAlreadyExists = function($indexFields) {
-                    foreach($this->indexes as $index) {
-                        if ($index->fields == $indexFields) {
-                            return true;
-                        }
-                        return false;
-                    }
-                };
-                if (!$indexAlreadyExists($index['fields'])) {
+                if (!$this->indexAlreadyExists($index)) {
                     $this->indexes[] = new Index($index['fields'], $index['unique']);
                 }
             }
@@ -181,6 +173,16 @@ class Model
     public function getTier(): string
     {
         return $this->tier;
+    }
+
+    public function indexAlreadyExists(array $index): bool
+    {
+        foreach ($this->indexes as $currentIndex) {
+            if ($currentIndex->fields == $index['fields'] && $currentIndex->unique == $index['unique']) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function isSharded(): bool
