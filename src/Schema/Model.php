@@ -81,6 +81,7 @@ class Model
         if (property_exists($class, 'id')) {
             $this->indexes[] = new UniqueIndex(['id']);
         }
+
         if (is_a($class, Indexing::class, true)) {
             $this->indexes = array_merge($this->indexes, $class::getIndexes());
         } elseif (method_exists($class, 'initSchema')) {
