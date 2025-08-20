@@ -78,10 +78,10 @@ class Model
             $this->tier = $reflection->getAttributes(TierAttribute::class)[0]->newInstance()->name;
         }
 
-        foreach($this->properties as $property) {
+        foreach ($this->properties as $property) {
             if (strtolower($property->name) === 'id') {
-            $this->indexes[] = new UniqueIndex([$property->name]);
-}
+                $this->indexes[] = new UniqueIndex([$property->name]);
+            }
         }
         if (is_a($class, Indexing::class, true)) {
             $this->indexes = array_merge($this->indexes, $class::getIndexes());
