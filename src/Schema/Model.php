@@ -169,7 +169,7 @@ class Model
         return $this->tier;
     }
 
-    public function indexAlreadyExists(array $index): bool
+    private function indexAlreadyExists(array $index): bool
     {
         foreach ($this->indexes as $currentIndex) {
             if ($currentIndex->fields == $index['fields'] && $currentIndex->unique == $index['unique']) {
