@@ -78,7 +78,10 @@ class Model
             $this->tier = $reflection->getAttributes(TierAttribute::class)[0]->newInstance()->name;
         }
 
-        $this->indexes[] = new UniqueIndex([$this->properties[0]->name]);
+        if (property_exists($class, 'id')) {
+            $this->indexes[] = new UniqueIndex(['id']);
+        }
+
         if (is_a($class, Indexing::class, true)) {
             $this->indexes = array_merge($this->indexes, $class::getIndexes());
         } elseif (method_exists($class, 'initSchema')) {
@@ -104,10 +107,18 @@ class Model
                         'fields' => $index,
                     ];
                 }
+
                 if (!array_key_exists('unique', $index)) {
-                    $index['unique'] = false;
+                    $index['unique'] = true;
                 }
-                $this->indexes[] = new Index($index['fields'], $index['unique']);
+
+                if (!$this->indexAlreadyExists($index)) {
+                    $this->indexes[] = new Index($index['fields'], $index['unique']);
+                }
+            }
+
+            if (!count($this->indexes) || !$this->indexes[0]->unique) {
+                throw new \Exception('No primary key is set for ' . $class);
             }
         }
     }
@@ -155,6 +166,16 @@ class Model
     public function getTier(): string
     {
         return $this->tier;
+    }
+
+    private function indexAlreadyExists(array $index): bool
+    {
+        foreach ($this->indexes as $currentIndex) {
+            if ($currentIndex->fields == $index['fields'] && $currentIndex->unique == $index['unique']) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function isSharded(): bool
