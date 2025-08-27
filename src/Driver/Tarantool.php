@@ -40,12 +40,17 @@ class Tarantool implements Driver
         if (!count($listeners)) {
             return $this->mapper->create($table, $data);
         }
-
         return $this->processLuaResult(
             table: $table,
             action: 'create',
-            params: $this->mapper->getSpace($table)->getTuple($data),
-            query: 'local tuple = box.space[table]:insert(params)',
+            params: [
+                $this->mapper->getSpace($table)->getTuple($data),
+                $this->getIdKey($table),
+            ],
+            query: <<<LUA
+                params[1][params[2]] = box.sequence[table]:next()
+                local tuple = box.space[table]:insert(params[1])
+            LUA
         );
     }
 
@@ -101,12 +106,14 @@ class Tarantool implements Driver
             params: [
                 $index['iid'],
                 $select,
-                $this->mapper->getSpace($table)->getTuple($data)
+                $this->mapper->getSpace($table)->getTuple($data),
+                $this->getIdKey($table),
             ],
             query: <<<QUERY
                 local tuples = box.space[table].index[params[1]]:select(params[2], {limit=1})
                 local tuple = tuples[1]
                 if tuple == nil then
+                    params[3][params[4]] = box.sequence[table]:next()
                     tuple = box.space[table]:insert(params[3])
                 else
                     register_changes = false
@@ -141,6 +148,11 @@ class Tarantool implements Driver
     public function getDsn(): string
     {
         return $this->dsn;
+    }
+
+    public function getIdKey(string $table): int
+    {
+        return array_search('id', $this->mapper->getSpace($table)->getFields()) + 1;
     }
 
     public function getListeners(string $table): array
