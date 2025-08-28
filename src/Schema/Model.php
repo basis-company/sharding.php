@@ -183,6 +183,16 @@ class Model
         return $this->isSharded;
     }
 
+    public function hasProperty(string $property): bool
+    {
+        foreach ($this->getProperties() as $candidate) {
+            if ($candidate->name == $property) {
+                return true;
+            }
+        }
+        return $false;
+    }
+
     public function hasTier(): bool
     {
         return $this->tier != '';
