@@ -14,11 +14,10 @@ class Reference
         return (new self($destination))->setSource($class, $property);
     }
 
-    public string $model = '';
-    public string $property = '';
-
     public function __construct(
         public string $destination,
+        public string $property = '',
+        public string $model = '',
     ) {
     }
 
