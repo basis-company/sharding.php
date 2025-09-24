@@ -19,6 +19,16 @@ class SchemaTest extends TestCase
         $this->assertSame($schema->getTableSegment('sharding_storage')->fullname, 'sharding_core');
     }
 
+    public function testSerialization()
+    {
+        $schema = new Schema();
+        $schema->register(User::class);
+        $model = $schema->getClassModel(User::class);
+        $serialized = serialize($model);
+        $unserialized = unserialize($serialized);
+        $this->assertEquals($model, $unserialized);
+    }
+
     public function testDuplicateClass()
     {
         $schema = new Schema();
