@@ -35,12 +35,12 @@ class LegacyTest extends TestCase
             'flags' => Storage::DEDICATED_FLAG,
         ]);
 
-        $bucket = $database->create(Bucket::class, [
-            'name' => 'stage',
-            'storage' => $additionalStorage->id,
-        ]);
+        $bucket = $database->create(Bucket::class, ['name' => 'stage']);
 
         $database->locator->assignStorage($bucket, Locator::class);
+        $this->assertNotSame($bucket->storage, $additionalStorage->id);
+        $database->update($bucket, ['storage' => $additionalStorage->id]);
+
         $correction = $database->create(StageCorrection::class, [
             'stage' => 123,
         ]);

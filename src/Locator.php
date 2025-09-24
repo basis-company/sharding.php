@@ -44,7 +44,10 @@ class Locator implements LocatorInterface, ShardingInterface
             'tier' => $topology && $topology->tier ? $topology->tier : 1,
         ]);
 
+        $storages = array_filter($storages, fn ($storage) => !$storage->isDedicated());
+
         $availableStorages = array_filter($storages, fn($storage) => !in_array($storage->id, $usedStorageKeys));
+
         if (!count($availableStorages)) {
             throw new Exception('No available storage');
         }
