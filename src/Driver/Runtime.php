@@ -65,7 +65,7 @@ class Runtime implements Driver
             $data = $this->data[$class];
         }
 
-        if (count($data) && array_key_exists(0, $data[0])) {
+        if (count($data) && array_key_exists('id', $data[0])) {
             usort($data, fn ($a, $b) => $a['id'] <=> $b['id']);
         }
         return $data;
