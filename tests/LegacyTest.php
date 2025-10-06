@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
 class LegacyTest extends TestCase
 {
     #[DataProviderExternal(TestProvider::class, 'drivers')]
-    public function test(Driver $driver)
+    public function testDedicated(Driver $driver)
     {
         Legacy::initialize();
 
@@ -79,5 +79,30 @@ class LegacyTest extends TestCase
         // domain test
         $this->assertCount(2, $database->getDomain('stage')->find('stage_correction'));
         $this->assertInstanceOf(StageCorrection::class, $database->getDomain('stage')->findOne('stage_correction', []));
+    }
+
+    public function testRuntimeFreeDataSelect()
+    {
+        $database = new Database(new Runtime());
+
+        $this->assertCount(0, $database->find('guard.access'));
+        $database->create('guard.access', ['hash' => 1]);
+
+        $this->assertCount(1, $database->find('guard.access'));
+        $database->findOrCreate('guard.access', ['hash' => 2]);
+
+        $this->assertCount(2, $database->find('guard.access'));
+
+        $database->findOrCreate('guard_access', ['hash' => 2]);
+        $this->assertCount(2, $database->find('guard.access'));
+    }
+
+    public function testRuntimeFreeDataCreate()
+    {
+        $database = new Database(new Runtime());
+
+        $database->create('guard.access', ['hash' => 1]);
+        $this->assertCount(1, $database->find('guard.access'));
+        $this->assertCount(1, $database->find('guard_access'));
     }
 }

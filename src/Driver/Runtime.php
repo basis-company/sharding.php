@@ -52,7 +52,7 @@ class Runtime implements Driver
     public function find(string $class, array $query = []): array
     {
         if (!array_key_exists($class, $this->data)) {
-            throw new Exception("No $class");
+            $this->data[$class] = [];
         }
         if (count($query)) {
             $data = [];
@@ -65,7 +65,9 @@ class Runtime implements Driver
             $data = $this->data[$class];
         }
 
-        usort($data, fn ($a, $b) => $a['id'] <=> $b['id']);
+        if (count($data) && array_key_exists(0, $data[0])) {
+            usort($data, fn ($a, $b) => $a['id'] <=> $b['id']);
+        }
         return $data;
     }
 
@@ -156,16 +158,18 @@ class Runtime implements Driver
 
     public function insert(string $table, array $rows): array
     {
-        foreach ($rows as $i => $row) {
-            $sorted = [];
-            foreach ($this->models[$table]->getProperties() as $property) {
-                if (array_key_exists($property->name, $row)) {
-                    $sorted[$property->name] = $row[$property->name];
-                } else {
-                    $sorted[$property->name] = $this->getDefaultValue($property->type);
+        if (array_key_exists($table, $this->models)) {
+            foreach ($rows as $i => $row) {
+                $sorted = [];
+                foreach ($this->models[$table]->getProperties() as $property) {
+                    if (array_key_exists($property->name, $row)) {
+                        $sorted[$property->name] = $row[$property->name];
+                    } else {
+                        $sorted[$property->name] = $this->getDefaultValue($property->type);
+                    }
                 }
+                $rows[$i] = $sorted;
             }
-            $rows[$i] = $sorted;
         }
 
         foreach ($rows as $row) {
