@@ -89,8 +89,9 @@ class LegacyTest extends TestCase
         $database->create('guard.access', ['hash' => 1]);
 
         $this->assertCount(1, $database->find('guard.access'));
-        $database->findOrCreate('guard.access', ['hash' => 2]);
+        $this->assertObjectHasProperty('id', $database->findOne('guard.access', []));
 
+        $database->findOrCreate('guard.access', ['hash' => 2]);
         $this->assertCount(2, $database->find('guard.access'));
 
         $database->findOrCreate('guard_access', ['hash' => 2]);

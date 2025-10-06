@@ -66,7 +66,7 @@ class Database implements Crud
 
     public function create(string $class, array $data): object
     {
-        if (property_exists($class, 'id') && (!array_key_exists('id', $data) || !$data['id'])) {
+        if ((!class_exists($class, false) || property_exists($class, 'id')) && (!array_key_exists('id', $data) || !$data['id'])) {
             $data['id'] = $this->generateId($class);
         }
 
@@ -141,7 +141,7 @@ class Database implements Crud
 
         $data = array_merge($query, $data);
 
-        if (property_exists($class, 'id') && (!array_key_exists('id', $data) || !$data['id'])) {
+        if ((!class_exists($class, false) || property_exists($class, 'id')) && (!array_key_exists('id', $data) || !$data['id'])) {
             $data = array_merge($data, ['id' => $this->generateId($class)]);
         }
 
@@ -166,6 +166,9 @@ class Database implements Crud
     public function generateId(string $class): int|string
     {
         $model = $this->schema->getClassModel($class);
+        if (!class_exists($class, false) && !$model) {
+            return Sequence::getNext($this, $class);
+        }
 
         return match ($model->getProperties()[0]->type) {
             'int' => Sequence::getNext($this, $model->table),
