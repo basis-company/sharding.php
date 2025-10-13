@@ -89,7 +89,7 @@ class Database implements Crud
 
     public function fetch(string|Model|null $class = null): Fetch
     {
-        return new Fetch($this, $class);
+        return new Fetch($this, $class ? $this->schema->getModel($class) : null);
     }
 
     public function fetchOne(string|Model|null $class = null): Fetch

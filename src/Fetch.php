@@ -6,7 +6,6 @@ namespace Basis\Sharding;
 
 use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Schema\Model;
-use Closure;
 use Exception;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Cache\CacheItem;
@@ -19,7 +18,7 @@ class Fetch
 
     public function __construct(
         public readonly Database $database,
-        public string|Model|null $class = null,
+        public ?Model $model = null,
         public bool $first = false,
     ) {
     }
@@ -35,7 +34,7 @@ class Fetch
         if (array_is_list($buckets) && count($buckets) && $buckets[0] instanceof Bucket) {
             $this->buckets = $buckets;
         } else {
-            $this->buckets = fn() => $this->database->getBuckets($this->class, $buckets, $writable, $multiple);
+            $this->buckets = fn() => $this->database->getBuckets($this->model, $buckets, $writable, $multiple);
         }
         return $this;
     }
@@ -43,7 +42,7 @@ class Fetch
     public function query(string $query, array $params = []): array|object|null
     {
         return $this->cache(function () use ($query, $params) {
-            if (!$this->buckets && $this->class) {
+            if (!$this->buckets && $this->model) {
                 $this->from([]);
             }
             if (is_callable($this->buckets)) {
@@ -68,12 +67,12 @@ class Fetch
                     break;
                 }
             }
-            if ($this->class) {
+            if ($this->model) {
                 if (!$this->first) {
                     // query result is array of tuples
                     $result = $result[0];
                 }
-                $result = array_map(fn($row) => $this->database->factory->getInstance($this->class, $row), $result);
+                $result = array_map(fn($row) => $this->database->factory->getInstance($this->model->class, $row), $result);
             }
 
             if ($this->first) {
@@ -87,8 +86,7 @@ class Fetch
     public function cache(callable $callback)
     {
         if ($this->cache) {
-            $model = $this->database->schema->getModel($this->class);
-            if ($model && $cache = $model->getCache()) {
+            if ($this->model && $cache = $this->model->getCache()) {
                 if ($this->cache->isHit()) {
                     $result = $this->cache->get();
                 } else {
@@ -107,16 +105,14 @@ class Fetch
     public function using(callable $callback): array|object|null
     {
         return $this->cache(function () use ($callback) {
-            if (!$this->class) {
+            if (!$this->model) {
                 throw new Exception("No class defined");
             }
-            $model = $this->database->schema->getModel($this->class);
-
             if ($this->buckets && !is_array($this->buckets)) {
                 $this->buckets = call_user_func($this->buckets);
             }
             if (!$this->buckets) {
-                $this->buckets = $this->database->getBuckets($model);
+                $this->buckets = $this->database->getBuckets($this->model);
             }
 
             $rows = [];
@@ -124,18 +120,16 @@ class Fetch
                 if (!$bucket->storage) {
                     continue;
                 }
-                $table = $model->table;
                 if ($bucket->isCore()) {
                     $driver = $this->database->getCoreDriver();
+                    $table = $this->model->table;
                 } else {
                     $storage = $this->database->getStorage($bucket->storage);
-                    if ($storage->isDedicated()) {
-                        $table = explode('_', $table, 2)[1];
-                    }
                     $driver = $storage->getDriver();
+                    $table = $this->model->getTable($bucket, $storage);
                 }
                 foreach ($callback($driver, $table) as $row) {
-                    $rows[] = $this->database->factory->getInstance($model->class, $row);
+                    $rows[] = $this->database->factory->getInstance($this->model->class, $row);
                     if ($this->first) {
                         return array_pop($rows);
                     }
