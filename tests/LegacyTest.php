@@ -27,7 +27,7 @@ class LegacyTest extends TestCase
         $database = new Database($driver->reset());
         $database->schema->register(StageCorrection::class, 'stage');
         $database->schema->register(StageCorrectionRepository::class);
-        $this->assertCount(2, $database->schema->getClassModel(StageCorrection::class)->getIndexes());
+        $this->assertCount(2, $database->schema->getModel(StageCorrection::class)->getIndexes());
 
         $additionalStorage = $database->create(Storage::class, [
             'type' => array_search(get_class($driver), Storage::$types),
@@ -72,8 +72,11 @@ class LegacyTest extends TestCase
 
         $this->assertCount(2, $database->find('stage.stage_correction'));
 
-        $database->schema->register(StageCorrection::class, 'stage');
+        // later class registration
+        $model = $database->schema->register(StageCorrection::class, 'stage');
+        $this->assertSame($database->schema->getModel('stage_stage_correction')->class, StageCorrection::class);
         $database->schema->getTableClass(str_replace('.', '_', 'stage.stage_correction'));
+
         $this->assertInstanceOf(StageCorrection::class, $database->findOne('stage.stage_correction', []));
 
         // domain test

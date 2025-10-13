@@ -22,7 +22,7 @@ class Upgrade implements Job
     public function __invoke(Database $database)
     {
         $topologies = $database->find(Topology::class, [
-            'name' => $database->schema->getClassSegment($this->class)->fullname,
+            'name' => $database->schema->getModel($this->class)->segment,
         ]);
 
         if (count($topologies) < 2) {
@@ -41,9 +41,9 @@ class Upgrade implements Job
             'replica' => 0,
         ]);
 
-        $segment = $database->schema->getSegmentByName($currentTopology->name);
-        $classes = $segment->getClasses();
-        $tables = $segment->getTables();
+        $models = $database->schema->getModels($currentTopology->name);
+        $classes = array_map(fn ($model) => $model->class, $models);
+        $tables = array_map(fn ($model) => $model->table, $models);
 
         $locator = null;
         foreach ($classes as $class) {
@@ -65,7 +65,7 @@ class Upgrade implements Job
             }
         }
 
-        if (!$database->schema->getClassSegment(Migration::class)) {
+        if (!$database->schema->getModel(Migration::class)) {
             $database->schema->register(Migration::class);
         }
 

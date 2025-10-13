@@ -5,8 +5,6 @@ namespace Basis\Sharding\Test;
 use Basis\Sharding\Attribute\Reference;
 use Basis\Sharding\Database;
 use Basis\Sharding\Driver\Runtime;
-use Basis\Sharding\Entity\Storage;
-use Basis\Sharding\Schema;
 use Basis\Sharding\Test\Entity\Event;
 use Basis\Sharding\Test\Entity\Post;
 use Basis\Sharding\Test\Entity\PostTag;

@@ -47,10 +47,10 @@ class ShardingTest extends TestCase
         $database = new Database(new Runtime(), $schema);
 
         $schema->register(Activity::class);
-        $segment = $schema->getClassSegment(Activity::class);
-        $this->assertTrue($segment->isSharded());
+        $segment = $schema->getModel(Activity::class)->segment;
+        $this->assertTrue($schema->isSharded($segment));
 
-        [$bucket] = $database->locator->getBuckets(Activity::class, writable: true);
+        [$bucket] = $database->locator->getBuckets($schema->getModel(Activity::class), writable: true);
         $database->delete($bucket);
 
         $this->assertSame($bucket->version, 1);
@@ -60,10 +60,10 @@ class ShardingTest extends TestCase
         $this->assertSame($topology->status, Topology::READY_STATUS);
 
         $schema->register(Stage::class);
-        $segment = $schema->getClassSegment(Stage::class);
-        $this->assertTrue($segment->isSharded());
+        $segment = $schema->getModel(Stage::class)->segment;
+        $this->assertTrue($schema->isSharded($segment));
 
-        [$bucket] = $database->locator->getBuckets(Stage::class, writable: true);
+        [$bucket] = $database->locator->getBuckets($schema->getModel(Stage::class), writable: true);
         $this->assertSame($bucket->version, 1);
         $this->assertCount(2, $database->find(Topology::class));
 

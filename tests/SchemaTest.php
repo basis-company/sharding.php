@@ -13,17 +13,27 @@ class SchemaTest extends TestCase
     public function testSystemBucket()
     {
         $schema = new Schema();
-        $this->assertSame(array_keys($schema->segments), ['sharding_core', 'sharding_sequence']);
-        $this->assertSame($schema->getTableSegment('sharding_bucket')->fullname, 'sharding_core');
-        $this->assertSame($schema->getTableSegment('sharding_sequence')->fullname, 'sharding_sequence');
-        $this->assertSame($schema->getTableSegment('sharding_storage')->fullname, 'sharding_core');
+        $this->assertSame($schema->getModel('sharding_bucket')->segment, 'sharding_core');
+        $this->assertSame($schema->getModel('sharding_sequence')->segment, 'sharding_sequence');
+        $this->assertSame($schema->getModel('sharding_storage')->segment, 'sharding_core');
+    }
+
+    public function testModelCasting()
+    {
+        $schema = new Schema();
+        $schema->register(User::class);
+        $model = $schema->getModel(User::class);
+        $this->assertSame($schema->getModel($model->table), $model);
+        $this->assertSame($schema->getModel(str_replace('_', '.', $model->table)), $model);
+
+        $model = $schema->register(Post::class);
     }
 
     public function testSerialization()
     {
         $schema = new Schema();
         $schema->register(User::class);
-        $model = $schema->getClassModel(User::class);
+        $model = $schema->getModel(User::class);
         $serialized = serialize($model);
         $unserialized = unserialize($serialized);
         $this->assertEquals($model, $unserialized);
@@ -33,7 +43,7 @@ class SchemaTest extends TestCase
     {
         $schema = new Schema();
         $this->expectException(Exception::class);
-        $this->expectExceptionMessage('Class ' . User::class . ' already registered');
+        $this->expectExceptionMessage('Model ' . User::class . ' already registered');
         $schema->register(User::class);
         $schema->register(User::class);
     }
@@ -42,17 +52,16 @@ class SchemaTest extends TestCase
     {
         $schema = new Schema();
         $schema->register(User::class);
-        $this->assertSame(array_keys($schema->segments), ['sharding_core', 'sharding_sequence', 'test']);
-        $this->assertSame($schema->getSegmentByName('test')->getClasses(), [User::class]);
-        $this->assertSame($schema->getClassTable(User::class), 'test_user');
+        $this->assertSame(array_map(fn ($model) => $model->class, $schema->getModels('test')), [User::class]);
+        $this->assertSame(array_map(fn ($model) => $model->segment, $schema->getModels('test')), ['test']);
+        $this->assertSame($schema->getTable(User::class), 'test_user');
     }
 
     public function testSegments()
     {
         $schema = new Schema();
         $schema->register(Post::class);
-        $this->assertSame(array_keys($schema->segments), ['sharding_core', 'sharding_sequence', 'test_posts']);
-        $this->assertSame($schema->segments['test_posts']->getClasses(), [Post::class]);
-        $this->assertSame($schema->getClassTable(Post::class), 'test_post');
+        $this->assertSame(array_map(fn ($model) => $model->class, $schema->getModels('test_posts')), [Post::class]);
+        $this->assertSame($schema->getTable(Post::class), 'test_post');
     }
 }

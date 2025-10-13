@@ -10,6 +10,8 @@ use Basis\Sharding\Database;
 use Basis\Sharding\Entity\Sequence;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Schema\Model;
+use Basis\Sharding\Schema\Property;
+use Basis\Sharding\Schema\UniqueIndex;
 use Basis\Sharding\Test\Entity\Document;
 use Basis\Sharding\Test\Entity\MapperLogin;
 use Basis\Sharding\Test\Entity\User;
@@ -18,6 +20,51 @@ use PHPUnit\Framework\TestCase;
 
 class DatabaseTest extends TestCase
 {
+    #[DataProviderExternal(TestProvider::class, 'drivers')]
+    public function testModels(Driver $driver)
+    {
+        $model = new Model('basis', 'basis_user');
+
+        // property using params
+        $model->addProperty('id', 'int');
+        $model->addProperty('nick', 'string');
+        // property using instance
+        $model->addProperty(new Property('name', 'string'));
+
+        // index using params
+        $model->addIndex(['id'], true);
+        // index instance
+        $model->addIndex(new UniqueIndex(['nick']));
+
+        $this->assertCount(3, $model->getProperties());
+        $this->assertCount(2, $model->getIndexes());
+
+        // ignore existing index
+        $model->addIndex(new UniqueIndex(['nick']));
+        $this->assertCount(2, $model->getIndexes());
+
+        // validate property registration
+        $fields = array_map(fn($property) => $property->name, $model->getProperties());
+        $this->assertSame(['id', 'nick', 'name'], $fields);
+        $types = array_map(fn($property) => $property->type, $model->getProperties());
+        $this->assertSame(['int', 'string', 'string'], $types);
+
+        $database = new Database($driver->reset());
+        $database->schema->registerModel($model);
+
+        $this->assertSame($database->schema->getModel('basis_user'), $model);
+
+        $user = $database->create('basis_user', [
+            'nick' => 'nekufa',
+        ]);
+        $this->assertSame($user->nick, 'nekufa');
+        $this->assertSame($user->id, 1);
+
+        $sameUser = $database->findOrFail($model, ['nick' => 'nekufa']);
+        $this->assertSame($user, $sameUser);
+        $this->assertSame($user, $database->findOne('basis.user', []));
+    }
+
     #[DataProviderExternal(TestProvider::class, 'drivers')]
     public function testStrings(Driver $driver)
     {
@@ -66,9 +113,9 @@ class DatabaseTest extends TestCase
 
         $database = new Database($driver);
         $database->schema->register(MapperLogin::class);
-        $schema = $database->schema->getClassSegment(MapperLogin::class);
-        $this->assertCount(1, $schema->getModels());
-        [$model] = $schema->getModels();
+        $login = $database->schema->getModel(MapperLogin::class);
+        $this->assertCount(1, $database->schema->getModels($login->segment));
+        [$model] = $database->schema->getModels($login->segment);
         $this->assertInstanceOf(Model::class, $model);
         assert($model instanceof Model);
         $this->assertCount(2, $model->getIndexes());

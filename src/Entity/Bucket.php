@@ -34,7 +34,7 @@ class Bucket implements Bootstrap, Segment, Indexing
     public static function bootstrap(Database $database): void
     {
         foreach (self::KEYS as $name => $id) {
-            $database->getCoreDriver()->create($database->schema->getClassTable(self::class), [
+            $database->getCoreDriver()->create($database->schema->getTable(self::class), [
                 'id' => $id,
                 'name' => $name,
                 'storage' => 1,

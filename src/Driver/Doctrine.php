@@ -263,8 +263,8 @@ class Doctrine implements Driver
     public function registerChanges(string $table, string $listener): void
     {
         if (!$this->hasTable(Subscription::TABLE)) {
-            $this->syncModel(new Model(Change::class, Change::TABLE));
-            $this->syncModel(new Model(Subscription::class, Subscription::TABLE));
+            $this->syncModel(new Model('', Change::TABLE, Change::class));
+            $this->syncModel(new Model('', Subscription::TABLE, Subscription::class));
         }
 
         $this->getConnection()->insert(Subscription::TABLE, [
@@ -338,7 +338,7 @@ class Doctrine implements Driver
             });
             $column->setNotnull(true);
 
-            if ($property->name == 'id') {
+            if ($model->class && $property->name == 'id') {
                 $reflection = new ReflectionProperty($model->class, $property->name);
                 if (count($reflection->getAttributes(Autoincrement::class))) {
                     $column->setAutoincrement(true);
@@ -363,12 +363,13 @@ class Doctrine implements Driver
     public function syncSchema(ShardingDatabase $shardingDatabase, Bucket $bucket): void
     {
         $bootstrappers = [];
-        $segment = $shardingDatabase->schema->getSegmentByName($bucket->name);
         $storage = $bucket->isCore() ? null : $shardingDatabase->getStorage($bucket->storage);
 
-        foreach ($segment->getModels() as $model) {
-            if (!$this->hasTable($model->getTable($bucket)) && is_a($model->class, Bootstrap::class, true)) {
-                $bootstrappers[] = $model->class;
+        foreach ($shardingDatabase->schema->getModels($bucket->name) as $model) {
+            if ($model->class && is_a($model->class, Bootstrap::class, true)) {
+                if (!$this->hasTable($model->getTable($bucket))) {
+                    $bootstrappers[] = $model->class;
+                }
             }
             $this->syncModel($model, $bucket, $storage);
         }

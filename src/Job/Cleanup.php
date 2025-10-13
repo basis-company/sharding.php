@@ -17,8 +17,6 @@ class Cleanup implements Job
     public function __invoke(Database $database)
     {
         $topology = $database->locator->getTopology($this->class);
-        $segment = $database->schema->getSegmentByName($topology->name);
-
         $counter = 0;
 
         foreach ($database->find(Bucket::class, ['name' => $topology->name]) as $bucket) {
@@ -27,7 +25,7 @@ class Cleanup implements Job
             }
             $counter++;
             $storage = $database->getStorage($bucket->storage);
-            foreach ($segment->getModels() as $model) {
+            foreach ($database->schema->getModels($topology->name) as $model) {
                 $table = $model->getTable($bucket, $storage);
                 if ($storage->getDriver()->hasTable($table)) {
                     $storage->getDriver()->dropTable($table);

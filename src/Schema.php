@@ -13,21 +13,18 @@ use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Interface\Domain as DomainInterface;
 use Basis\Sharding\Interface\Segment as SegmentInterface;
 use Basis\Sharding\Schema\Model;
-use Basis\Sharding\Schema\Segment;
 use Tarantool\Mapper\Repository;
 use Exception;
 use ReflectionClass;
 
 class Schema
 {
+    public array $casting = [];
     public array $classes = [];
-    public array $segments = [];
+    public array $models = [];
+
     public array $references = [];
     public array $collections = [];
-
-    public array $classSegment = [];
-    public array $tableClass = [];
-    public array $tableSegment = [];
 
     public function __construct()
     {
@@ -67,22 +64,48 @@ class Schema
         return null;
     }
 
-    public function getClassModel(string $class): ?Model
+    public function getModel(string|Model $table): Model
     {
-        return $this->getClassSegment($class)?->getClassModel($class);
-    }
-
-    public function getClassSegment(string $class): ?Segment
-    {
-        if (!array_key_exists($class, $this->classSegment)) {
-            return null;
+        if ($table instanceof Model) {
+            return $table;
         }
-        return $this->getSegmentByName($this->classSegment[$class]);
+
+        if (!$table) {
+            throw new Exception("Empty model casting");
+        }
+
+        if (array_key_exists($table, $this->casting)) {
+            return $this->casting[$table];
+        }
+
+        if (class_exists($table)) {
+            $classTable = $this->getTable($table);
+            if ($classTable) {
+                return $this->casting[$table] = $this->getModel($classTable);
+            }
+
+            return $this->casting[$table] = $this->register($table);
+        }
+
+        if (str_contains($table, '.')) {
+            $table = str_replace('.', '_', $table);
+        }
+
+        if ($table && array_key_exists($table, $this->models)) {
+            return $this->casting[$table] = $this->models[$table];
+        }
+
+        if (str_contains($table, '_')) {
+            [$segment] = explode('_', $table);
+            return $this->casting[$table] = $this->registerModel(new Model($segment, $table));
+        }
+
+        throw new Exception("Invalid model casting: $table");
     }
 
-    public function getClassTable(string $class): string
+    public function getTable(string $class): ?string
     {
-        return $this->getSegmentByName($this->classSegment[$class])->getTable($class);
+        return array_search($class, $this->classes) ?: null;
     }
 
     public function getReference(string $class, string $property): ?array
@@ -92,9 +115,9 @@ class Schema
         foreach ($this->references as $reference) {
             if ($reference->model == $class && self::toUnderscore($reference->property) == $property) {
                 $destination = $reference->destination;
-                if (!class_exists($destination) && !str_contains($destination, '.')) {
+                if (!class_exists($destination) && !str_contains($destination, '.') && !$this->hasTable($destination)) {
                     // local entity domain
-                    $destination = $this->getClassSegment($reference->model)->domain . '.' . $destination;
+                    $destination = $this->getModel($reference->model)->segment . '.' . $destination;
                 }
 
                 return [
@@ -107,39 +130,42 @@ class Schema
         return null;
     }
 
-    public function getSegmentByName(string $name, bool $create = true): Segment
+    public function getModels(?string $segment = null): array
     {
-        if (!$this->hasSegment($name)) {
-            if (!$create) {
-                throw new Exception("Segment $name not found");
-            }
-            $parts = explode('_', $name, 2);
-            $this->segments[$name] = new Segment($parts[0], $parts[1] ?? '');
+        if ($segment === null) {
+            return $this->models;
         }
-        return $this->segments[$name];
+
+        return array_values(array_filter($this->models, fn ($model) => $model->segment == $segment));
     }
 
-    public function getTableClass(string $table): string
+    public function getTableClass(string $table): ?string
     {
-        return $this->tableClass[$table];
-    }
-
-    public function getTableSegment(string $table): Segment
-    {
-        return $this->getSegmentByName($this->tableSegment[$table]);
+        return array_key_exists($table, $this->classes) ? $this->classes[$table] : '';
     }
 
     public function hasSegment(string $name): bool
     {
-        return array_key_exists($name, $this->segments);
+        return count($this->getModels($name)) > 0;
     }
 
     public function hasTable(string $table): bool
     {
-        return array_key_exists($table, $this->tableClass);
+        return array_key_exists($table, $this->classes);
     }
 
-    public function register(string $class, ?string $domain = null)
+    public function isSharded(string $segment): bool
+    {
+        foreach ($this->models as $model) {
+            if ($model->segment == $segment && $model->isSharded() || $model->hasTier()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function register(string $class, ?string $domain = null): Model
     {
         if (array_key_exists($class, $this->classes)) {
             throw new Exception("Class $class already registered");
@@ -149,12 +175,10 @@ class Schema
         $name = array_pop($parts); // name
 
         if (class_exists(Repository::class, false) && is_a($class, Repository::class, true)) {
-            foreach ($this->segments as $segment) {
-                foreach ($segment->getClasses() as $candidate) {
-                    if ((new ReflectionClass($candidate))->getShortName() == $name) {
-                        $segment->getClassModel($candidate)->append($class);
-                        return;
-                    }
+            foreach ($this->models as $model) {
+                if ($model->shortName == $name) {
+                    $model->append($class);
+                    return $model;
                 }
             }
         }
@@ -178,19 +202,31 @@ class Schema
         }
 
         $key = self::toUnderscore($domain . ($postfix ? '_' . $postfix : ''));
-        $segment = $this->getSegmentByName($key);
+        $table = $domain . '_' . Schema::toUnderscore(array_reverse(explode('\\', $class))[0]);
 
-        $segment->register($class);
-        $this->classSegment[$class] = $key;
+        return $this->registerModel(new Model($key, $table, $class));
+    }
 
-        $table = $segment->getTable($class);
-        $this->tableSegment[$table] = $key;
-        $this->tableClass[$table] = $class;
+    public function registerModel(Model $model): Model
+    {
+        if (array_key_exists($model->table, $this->classes)) {
+            if ($this->models[$model->table]->class === null && $model->class) {
+                $this->classes[$model->table] = $model->class;
+                $this->models[$model->table]->setClass($model->class);
+                return $this->models[$model->table];
+            }
+            throw new Exception('Model ' . ($model->class ?: $model->table) . ' already registered');
+        }
 
-        foreach ($segment->getClassModel($class)->getReferences() as $reference) {
+        $this->classes[$model->table] = $model->class;
+        $this->models[$model->table] = $model;
+
+        foreach ($model->getReferences() as $reference) {
             $this->collections = [];
             $this->addReference(clone $reference);
         }
+
+        return $model;
     }
 
     public static function toCamelCase(string $string)

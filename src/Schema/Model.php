@@ -10,10 +10,11 @@ use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Interface\Indexing;
 use Basis\Sharding\Interface\Sharding as ShardingInterface;
+use Exception;
 use ReflectionClass;
 use ReflectionProperty;
-use Tarantool\Mapper\Space;
 use Tarantool\Mapper\Repository;
+use Tarantool\Mapper\Space;
 
 class Model
 {
@@ -26,76 +27,59 @@ class Model
      * @var Property[]
      */
     private array $properties = [];
+
+    /**
+     * @var Reference[]
+     */
     private array $references = [];
 
     private bool $isSharded = false;
     private string $tier = '';
     private ?Caching $cache = null;
+    
+    public readonly string $shortName;
 
     public function __construct(
-        public readonly string $class,
+        public readonly string $segment,
         public readonly string $table,
+        public ?string $class = null,
     ) {
-        $reflection = new ReflectionClass($class);
-        if (count($reflection->getAttributes(Caching::class))) {
-            $this->cache = $reflection->getAttributes(Caching::class)[0]->newInstance();
+        if ($class && class_exists($class)) {
+            return $this->setClass($class);
+        }
+    }
+
+    public function addIndex(array|Index $fields, bool $unique = false): self
+    {
+        if ($fields instanceof Index) {
+            $index = $fields;
+        } else {
+            $index = new Index($fields, $unique);
         }
 
-        foreach ($reflection->getConstructor()?->getParameters() ?: [] as $parameter) {
-            foreach ($parameter->getAttributes(Reference::class) as $reference) {
-                $this->references[] = $reference->newInstance()->setSource($class, $parameter->getName());
-            }
-            $this->properties[] = new Property($parameter->getName(), $parameter->getType()->getName());
+        if (!array_key_exists($index->name, $this->indexes)) {
+            $this->indexes[$index->name] = $index;
         }
 
-        if (!count($this->properties)) {
-            foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
-                if ($property->hasType()) {
-                    $type = $property->getType()->getName();
-                } else {
-                    foreach (explode(PHP_EOL, $property->getDocComment()) as $line) {
-                        if (str_contains($line, '@var')) {
-                            $type = trim(explode('@var ', $line)[1]);
-                            $type = match ($type) {
-                                ucfirst($type) => 'int',
-                                'integer' => 'int',
-                                default => $type,
-                            };
-                        }
-                    }
-                }
-                $this->properties[] = new Property($property->getName(), $type);
-            }
+        return $this;
+    }
+
+    public function addProperty(string|Property $name, ?string $type = 'integer'): self
+    {
+        if ($name instanceof Property) {
+            $this->properties[] = $name;
+        } else {
+            $this->properties[] = new Property($name, $type);
         }
 
-        if (is_a($class, ShardingInterface::class, true)) {
-            $this->isSharded = true;
-        } elseif (count($reflection->getAttributes(ShardingAttribute::class))) {
-            $this->isSharded = true;
-        }
+        return $this;
+    }
 
-        if (count($reflection->getAttributes(TierAttribute::class))) {
-            $this->tier = $reflection->getAttributes(TierAttribute::class)[0]->newInstance()->name;
-        }
+    public function addReference(Reference $reference): self
+    {
+        $this->references[] = $reference;
 
-        if (property_exists($class, 'id')) {
-            $this->indexes[] = new UniqueIndex(['id']);
-        }
-
-        if (is_a($class, Indexing::class, true)) {
-            $this->indexes = array_merge($this->indexes, $class::getIndexes());
-        } elseif (method_exists($class, 'initSchema')) {
-            $class::initSchema($fake = new class extends Space {
-                public function __construct(public array $indexes = [])
-                {
-                }
-                public function addIndex(array $fields, array $options = []): void
-                {
-                    $this->indexes[] = new Index($fields, $options['unique'] ?? false);
-                }
-            });
-            $this->indexes = array_merge($this->indexes, $fake->indexes);
-        }
+        return $this;
     }
 
     public function append(string $class)
@@ -112,15 +96,18 @@ class Model
                     $index['unique'] = true;
                 }
 
-                if (!$this->indexAlreadyExists($index)) {
-                    $this->indexes[] = new Index($index['fields'], $index['unique']);
-                }
+                $this->addIndex(new Index($index['fields'], $index['unique']));
             }
 
-            if (!count($this->indexes) || !$this->indexes[0]->unique) {
+            if (!count($this->getIndexes()) || !array_values($this->getIndexes())[0]->unique) {
                 throw new \Exception('No primary key is set for ' . $class);
             }
         }
+    }
+
+    public function getCache(): ?Caching
+    {
+        return $this->cache;
     }
 
     /**
@@ -128,11 +115,7 @@ class Model
      */
     public function getIndexes(): array
     {
-        $indexes = [];
-        foreach ($this->indexes as $index) {
-            $indexes[$index->name] = $index;
-        }
-        return array_values($indexes);
+        return array_values($this->indexes);
     }
 
     /**
@@ -158,24 +141,14 @@ class Model
         return $table;
     }
 
-    public function getCache(): ?Caching
-    {
-        return $this->cache;
-    }
-
     public function getTier(): string
     {
         return $this->tier;
     }
 
-    private function indexAlreadyExists(array $index): bool
+    public function hasTier(): bool
     {
-        foreach ($this->indexes as $currentIndex) {
-            if ($currentIndex->fields == $index['fields'] && $currentIndex->unique == $index['unique']) {
-                return true;
-            }
-        }
-        return false;
+        return $this->tier != '';
     }
 
     public function isSharded(): bool
@@ -183,8 +156,96 @@ class Model
         return $this->isSharded;
     }
 
-    public function hasTier(): bool
+    public function setCache(Caching $cache): self
     {
-        return $this->tier != '';
+        $this->cache = $cache;
+        return $this;
+    }
+
+    public function setClass(string $class)
+    {
+        if (count($this->properties)) {
+            throw new Exception("Model override");
+        }
+
+        if ($this->class === null) {
+            $this->class = $class;
+        }
+
+        $reflection = new ReflectionClass($class);
+        $this->shortName = $reflection->getShortName();
+
+        if (count($reflection->getAttributes(Caching::class))) {
+            $this->setCache($reflection->getAttributes(Caching::class)[0]->newInstance());
+        }
+
+        foreach ($reflection->getConstructor()?->getParameters() ?: [] as $parameter) {
+            foreach ($parameter->getAttributes(Reference::class) as $reference) {
+                $this->addReference($reference->newInstance()->setSource($class, $parameter->getName()));
+            }
+            $this->addProperty(new Property($parameter->getName(), $parameter->getType()->getName()));
+        }
+
+        if (!count($this->getProperties())) {
+            foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
+                if ($property->hasType()) {
+                    $type = $property->getType()->getName();
+                } else {
+                    foreach (explode(PHP_EOL, $property->getDocComment()) as $line) {
+                        if (str_contains($line, '@var')) {
+                            $type = trim(explode('@var ', $line)[1]);
+                            $type = match ($type) {
+                                ucfirst($type) => 'int',
+                                'integer' => 'int',
+                                default => $type,
+                            };
+                        }
+                    }
+                }
+                $this->addProperty(new Property($property->getName(), $type));
+            }
+        }
+
+        if (is_a($class, ShardingInterface::class, true)) {
+            $this->setSharded(true);
+        } elseif (count($reflection->getAttributes(ShardingAttribute::class))) {
+            $this->setSharded(true);
+        }
+
+        if (count($reflection->getAttributes(TierAttribute::class))) {
+            $this->setTier($reflection->getAttributes(TierAttribute::class)[0]->newInstance()->name);
+        }
+
+        if (property_exists($class, 'id')) {
+            $this->addIndex(new UniqueIndex(['id']));
+        }
+
+        if (is_a($class, Indexing::class, true)) {
+            array_map($this->addIndex(...), $class::getIndexes());
+        } elseif (method_exists($class, 'initSchema')) {
+            $class::initSchema($fake = new class extends Space {
+                public function __construct(public array $indexes = [])
+                {
+                }
+                public function addIndex(array $fields, array $options = []): void
+                {
+                    $this->indexes[] = new Index($fields, $options['unique'] ?? false);
+                }
+            });
+            array_map($this->addIndex(...), $fake->indexes);
+        }
+    }
+
+
+    public function setSharded(bool $sharded): self
+    {
+        $this->isSharded = $sharded;
+        return $this;
+    }
+
+    public function setTier(string $tier): self
+    {
+        $this->tier = $tier;
+        return $this;
     }
 }

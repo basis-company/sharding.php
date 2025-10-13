@@ -10,6 +10,7 @@ use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Interface\Crud;
 use Basis\Sharding\Interface\Driver;
 use Basis\Sharding\Interface\Job;
+use Basis\Sharding\Schema\Model;
 use Exception;
 use Psr\Cache\CacheItemPoolInterface;
 use Ramsey\Uuid\Uuid;
@@ -28,7 +29,7 @@ class Database implements Crud
     ) {
         $this->locator = new Locator($this);
 
-        if (!$driver->hasTable($this->schema->getClassTable(Bucket::class))) {
+        if (!$driver->hasTable($this->schema->getTable(Bucket::class))) {
             foreach (array_keys(Bucket::KEYS) as $segment) {
                 $driver->syncSchema($this, new Bucket(0, $segment, 0, 0, 0, 1, 0));
             }
@@ -43,31 +44,11 @@ class Database implements Crud
         });
     }
 
-    public function cache(string $method, array $arguments, callable $callback)
+    public function create(string|Model $class, array $data): object
     {
-        if ($this->cache) {
-            $model = $this->schema->getClassModel($arguments[0]);
-            if ($model && $cache = $model->getCache()) {
-                $item = $this->cache->getItem(sha1($method . json_encode($arguments)));
-                if ($item->isHit()) {
-                    $result = $item->get();
-                } else {
-                    $result = $callback();
-                    $item->set($result);
-                    $item->expiresAfter($cache->getLifetime());
-                    $this->cache->save($item);
-                }
-                return $result;
-            }
-        }
-
-        return $callback();
-    }
-
-    public function create(string $class, array $data): object
-    {
+        $model = $this->schema->getModel($class);
         if ((!class_exists($class, false) || property_exists($class, 'id')) && (!array_key_exists('id', $data) || !$data['id'])) {
-            $data['id'] = $this->generateId($class);
+            $data = array_merge(['id' => $this->generateId($model)], $data);
         }
 
         foreach ($this->factory->getDefaults($class) as $k => $v) {
@@ -106,34 +87,38 @@ class Database implements Crud
         return $job($this);
     }
 
-    public function fetch(?string $class = null): Fetch
+    public function fetch(string|Model|null $class = null): Fetch
     {
         return new Fetch($this, $class);
     }
 
-    public function fetchOne(?string $class = null): Fetch
+    public function fetchOne(string|Model|null $class = null): Fetch
     {
         return $this->fetch($class)->first();
     }
 
-    public function find(string $class, array $data = []): array
+    public function find(string|Model $class, array $data = []): array
     {
-        return $this->cache(__METHOD__, func_get_args(), fn() => $this->fetch($class)
+        return $this->fetch($class)
             ->from($data)
-            ->using(fn(Driver $driver, string $table) => $driver->find($table, $data)));
+            ->setCache($this->cache, [__METHOD__, func_get_args()])
+            ->using(fn(Driver $driver, string $table) => $driver->find($table, $data));
     }
 
-    public function findOne(string $class, array $query): ?object
+    public function findOne(string|Model $class, array $query): ?object
     {
-        return $this->cache(__METHOD__, func_get_args(), fn() => $this->fetchOne($class)
+        return $this->fetchOne($class)
             ->from($query)
+            ->setCache($this->cache, [__METHOD__, func_get_args()])
             ->using(function (Driver $driver, string $table) use ($query) {
                 return $driver->findOne($table, $query) ? [$driver->findOne($table, $query)] : [];
-            }));
+            });
     }
 
-    public function findOrCreate(string $class, array $query, array $data = []): object
+    public function findOrCreate(string|Model $class, array $query, array $data = []): object
     {
+        $model = $this->schema->getModel($class);
+
         $instance = $this->findOne($class, $query);
         if ($instance) {
             return $instance;
@@ -142,7 +127,7 @@ class Database implements Crud
         $data = array_merge($query, $data);
 
         if ((!class_exists($class, false) || property_exists($class, 'id')) && (!array_key_exists('id', $data) || !$data['id'])) {
-            $data = array_merge($data, ['id' => $this->generateId($class)]);
+            $data = array_merge($data, ['id' => $this->generateId($model)]);
         }
 
         foreach ($this->factory->getDefaults($class) as $k => $v) {
@@ -151,35 +136,35 @@ class Database implements Crud
             }
         }
 
-        return $this->fetchOne($class)
+        return $this->fetchOne($model)
             ->from($data, writable: true, multiple: false)
             ->using(function (Driver $driver, string $table) use ($query, $data) {
                 return [$driver->findOrCreate($table, $query, $data)];
             });
     }
 
-    public function findOrFail(string $class, array $query): ?object
+    public function findOrFail(string|Model $class, array $query): ?object
     {
         return $this->findOne($class, $query) ?: throw new Exception('No ' . $class . ' found');
     }
 
-    public function generateId(string $class): int|string
+    public function generateId(Model $model): int|string
     {
-        $model = $this->schema->getClassModel($class);
-        if (!class_exists($class, false) && !$model) {
-            return Sequence::getNext($this, $class);
+        if (!$model->class || !count($model->getProperties())) {
+            return Sequence::getNext($this, $model);
         }
 
         return match ($model->getProperties()[0]->type) {
-            'int' => Sequence::getNext($this, $model->table),
+            'int' => Sequence::getNext($this, $model),
             'string' => Uuid::uuid4()->toString(),
             default => throw new Exception("Unsupported id type " . $model->table),
         };
     }
 
-    public function getBuckets(string $class, array $data = [], bool $writable = false, bool $multiple = true): array
+    public function getBuckets(string|Model $class, array $data = [], bool $writable = false, bool $multiple = true): array
     {
-        return $this->locator->getBuckets($class, $data, $writable, $multiple);
+        $model = $this->schema->getModel($class);
+        return $this->locator->getBuckets($model, $data, $writable, $multiple);
     }
 
     public function getContext(): array
@@ -228,13 +213,13 @@ class Database implements Crud
         return new Query($this, $buckets);
     }
 
-    public function select(string $class): Select
+    public function select(string|Model $class): Select
     {
         return new Select(function (Select $global) use ($class) {
             $result = [];
             foreach ($this->getBuckets($class) as $bucket) {
                 $storage = $this->getStorage($bucket->storage);
-                $table = $this->schema->getClassModel($class)->getTable($bucket, $storage);
+                $table = $this->schema->getModel($class)->getTable($bucket, $storage);
                 $select = $storage->getDriver()->select($table);
                 $select->conditions = $global->conditions;
                 $select->limit = $global->limit;

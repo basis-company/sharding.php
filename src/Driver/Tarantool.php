@@ -236,8 +236,8 @@ class Tarantool implements Driver
     public function registerChanges(string $table, string $listener): void
     {
         if (!$this->hasTable(Subscription::TABLE)) {
-            $this->syncModel(new Model(Change::class, Change::TABLE));
-            $this->syncModel(new Model(Subscription::class, Subscription::TABLE));
+            $this->syncModel(new Model('', Change::TABLE, Change::class));
+            $this->syncModel(new Model('', Subscription::TABLE, Subscription::class));
         }
 
         $this->mapper->create(Subscription::TABLE, [
@@ -333,7 +333,7 @@ class Tarantool implements Driver
         $bootstrap = [];
         $storage = $bucket->isCore() ? null : $database->getStorage($bucket->storage);
 
-        foreach ($database->schema->getSegmentByName($bucket->name, create: false)->getModels() as $model) {
+        foreach ($database->schema->getModels($bucket->name) as $model) {
             if (!$this->mapper->hasSpace($model->getTable($bucket)) && is_a($model->class, Bootstrap::class, true)) {
                 $bootstrap[] = $model->class;
             }

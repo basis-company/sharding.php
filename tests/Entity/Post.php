@@ -21,7 +21,7 @@ class Post implements Segment, Locator
         public string $name,
         #[Reference(User::class)]
         public int $author,
-        #[Reference('user')]
+        #[Reference('test_user')]
         public int $reviewer,
         #[Reference('test.user')]
         public int $administrator,

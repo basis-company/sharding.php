@@ -47,7 +47,7 @@ class Factory
         return $this->defaults[$class];
     }
 
-    public function getInstance(string $class, array|object $data): object
+    public function getInstance(?string $class, array|object $data): object
     {
         if (is_object($data)) {
             $data = get_object_vars($data);

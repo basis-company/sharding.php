@@ -36,14 +36,14 @@ class Configure implements Job
 
     public function __invoke(Database $database)
     {
-        $name = $database->schema->getClassSegment($this->class)->fullname;
+        $name = $database->schema->getModel($this->class)->segment;
 
         $topologies = $database->find(Topology::class, ['name' => $name]);
         if (!count($topologies) && $database->schema->hasSegment($name)) {
-            if (!$database->schema->getSegmentByName($name)->isSharded()) {
+            if (!$database->schema->isSharded($name)) {
                 throw new Exception("Invalid topology name: $name");
             }
-            if ($this->tier === null && $tier = $database->schema->getClassModel($this->class)->getTier()) {
+            if ($this->tier === null && $tier = $database->schema->getModel($this->class)->getTier()) {
                 $tier = $database->findOrCreate(Tier::class, ['name' => $tier])->id;
             }
             $topologies = [

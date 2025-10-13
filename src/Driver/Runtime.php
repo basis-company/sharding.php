@@ -158,7 +158,7 @@ class Runtime implements Driver
 
     public function insert(string $table, array $rows): array
     {
-        if (array_key_exists($table, $this->models)) {
+        if (array_key_exists($table, $this->models) && count($this->models[$table]->getProperties())) {
             foreach ($rows as $i => $row) {
                 $sorted = [];
                 foreach ($this->models[$table]->getProperties() as $property) {
@@ -199,7 +199,7 @@ class Runtime implements Driver
             }
             foreach (array_keys($listeners) as $listener) {
                 if (!array_key_exists(Change::TABLE, $this->data)) {
-                    $model = new Model(Change::class, Change::TABLE);
+                    $model = new Model('', Change::TABLE, Change::class);
                     $this->data[$model->table] = [];
                     $this->models[$model->table] = $model;
                 }
@@ -218,7 +218,7 @@ class Runtime implements Driver
     public function registerChanges(string $table, string $listener): void
     {
         if (!$this->hasTable(Subscription::TABLE)) {
-            $model = new Model(Subscription::class, Subscription::TABLE);
+            $model = new Model('', Subscription::TABLE, Subscription::class);
             $this->data[$model->table] = [];
             $this->models[$model->table] = $model;
         }
@@ -282,7 +282,7 @@ class Runtime implements Driver
         $bootstrappers = [];
         $storage = $bucket->isCore() ? null : $database->getStorage($bucket->storage);
 
-        foreach ($database->schema->getSegmentByName($bucket->name, create: false)->getModels() as $model) {
+        foreach ($database->schema->getModels($bucket->name) as $model) {
             $table = $model->getTable($bucket, $storage);
             if (array_key_exists($table, $this->data)) {
                 continue;

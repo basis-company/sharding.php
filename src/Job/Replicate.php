@@ -38,11 +38,11 @@ class Replicate implements Job
                 if ($replica->name != $master->name || $replica->shard != $master->shard || !$replica->replica) {
                     continue;
                 }
-                foreach ($database->schema->getSegmentByName($master->name)->getTables() as $table) {
-                    if (!array_key_exists($table, $tableDrivers)) {
-                        $tableDrivers[$table] = [];
+                foreach ($database->schema->getModels($master->name) as $model) {
+                    if (!array_key_exists($model->table, $tableDrivers)) {
+                        $tableDrivers[$model->table] = [];
                     }
-                    $tableDrivers[$table][] = $database->getStorage($replica->storage)->getDriver();
+                    $tableDrivers[$model->table][] = $database->getStorage($replica->storage)->getDriver();
                 }
             }
         }
