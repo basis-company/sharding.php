@@ -27,6 +27,8 @@ class SchemaTest extends TestCase
         $this->assertSame($schema->getModel(str_replace('_', '.', $model->table)), $model);
 
         $model = $schema->register(Post::class);
+        $schema->setResolver(fn() => $model);
+        $this->assertSame($schema->getModel('bazyaba'), $model);
     }
 
     public function testSerialization()

@@ -13,6 +13,7 @@ use Basis\Sharding\Entity\Topology;
 use Basis\Sharding\Interface\Domain as DomainInterface;
 use Basis\Sharding\Interface\Segment as SegmentInterface;
 use Basis\Sharding\Schema\Model;
+use Closure;
 use Tarantool\Mapper\Repository;
 use Exception;
 use ReflectionClass;
@@ -25,6 +26,8 @@ class Schema
 
     public array $references = [];
     public array $collections = [];
+
+    private ?Closure $resolver = null;
 
     public function __construct()
     {
@@ -85,6 +88,18 @@ class Schema
             }
 
             return $this->casting[$table] = $this->register($table);
+        }
+
+        if ($this->resolver !== null) {
+            $model = ($this->resolver)($table);
+            if ($model && $model instanceof Model) {
+                foreach ($this->models as $candidate) {
+                    if ($candidate == $model) {
+                        return $this->casting[$table] = $candidate;
+                    }
+                }
+                return $this->casting[$table] = $this->registerModel($model);
+            }
         }
 
         if (str_contains($table, '.')) {
@@ -227,6 +242,12 @@ class Schema
         }
 
         return $model;
+    }
+
+    public function setResolver(Closure $resolver): self
+    {
+        $this->resolver = $resolver;
+        return $this;
     }
 
     public static function toCamelCase(string $string)
