@@ -64,7 +64,7 @@ class Model
         return $this;
     }
 
-    public function addProperty(string|Property $name, ?string $type = 'integer'): self
+    public function addProperty(string|Property $name, ?string $type = 'int'): self
     {
         if ($name instanceof Property) {
             $this->properties[] = $name;
