@@ -29,6 +29,10 @@ class SchemaTest extends TestCase
         $model = $schema->register(Post::class);
         $schema->setResolver(fn() => $model);
         $this->assertSame($schema->getModel('bazyaba'), $model);
+
+        // check resolver priority
+        $this->assertSame($schema->getModel(User::class), $schema->getModel('test.user'));
+        $this->assertSame($schema->getModel(User::class), $schema->getModel('test_user'));
     }
 
     public function testSerialization()

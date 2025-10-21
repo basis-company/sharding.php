@@ -90,6 +90,14 @@ class Schema
             return $this->casting[$table] = $this->register($table);
         }
 
+        if (str_contains($table, '.')) {
+            $table = str_replace('.', '_', $table);
+        }
+
+        if ($table && array_key_exists($table, $this->models)) {
+            return $this->casting[$table] = $this->models[$table];
+        }
+
         if ($this->resolver !== null) {
             $model = ($this->resolver)($table);
             if ($model && $model instanceof Model) {
@@ -100,14 +108,6 @@ class Schema
                 }
                 return $this->casting[$table] = $this->registerModel($model);
             }
-        }
-
-        if (str_contains($table, '.')) {
-            $table = str_replace('.', '_', $table);
-        }
-
-        if ($table && array_key_exists($table, $this->models)) {
-            return $this->casting[$table] = $this->models[$table];
         }
 
         if (str_contains($table, '_')) {
