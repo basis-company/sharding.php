@@ -54,15 +54,22 @@ class DatabaseTest extends TestCase
 
         $this->assertSame($database->schema->getModel('basis_user'), $model);
 
-        $user = $database->create('basis_user', [
-            'nick' => 'nekufa',
-        ]);
+        $user = $database->create('basis_user', ['nick' => 'nekufa']);
         $this->assertSame($user->nick, 'nekufa');
         $this->assertSame($user->id, 1);
 
         $sameUser = $database->findOrFail($model, ['nick' => 'nekufa']);
         $this->assertSame($user, $sameUser);
         $this->assertSame($user, $database->findOne('basis.user', []));
+
+        $database->schema->registerModel(
+            (new Model('basis','basis_channel'))
+                ->addProperty('id')
+                ->addIndex(['id'], true)
+        );
+
+        $this->assertCount(0, $database->find('basis_channel'));
+        $this->assertNotCount(0, $database->find('basis_user'));
     }
 
     #[DataProviderExternal(TestProvider::class, 'drivers')]
