@@ -70,6 +70,12 @@ class DatabaseTest extends TestCase
 
         $this->assertCount(0, $database->find('basis_channel'));
         $this->assertNotCount(0, $database->find('basis_user'));
+
+        $user = $database->create('basis_channel', []);
+        $this->assertNotSame(
+            $database->findOne('basis_user', []),
+            $database->findOne('basis_channel', [])
+        );
     }
 
     #[DataProviderExternal(TestProvider::class, 'drivers')]

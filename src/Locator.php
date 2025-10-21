@@ -113,14 +113,15 @@ class Locator implements LocatorInterface, ShardingInterface
     public function getBuckets(Model $model, array $data = [], bool $writable = false, bool $multiple = true): array
     {
         $driver = $this->database->getCoreDriver();
+        $bucketModel = $this->database->schema->getModel(Bucket::class);
 
         if ($model->class == Bucket::class) {
             $row = $driver->findOrFail(Bucket::TABLE, ['name' => Bucket::BUCKET]);
-            return [$this->database->factory->getInstance(Bucket::class, $row)];
+            return [$this->database->factory->getInstance($bucketModel, $row)];
         }
 
         $buckets = $driver->find(Bucket::TABLE, ['name' => $model->segment]);
-        $buckets = array_map(fn ($data) => $this->database->factory->getInstance(Bucket::class, $data), $buckets);
+        $buckets = array_map(fn ($data) => $this->database->factory->getInstance($bucketModel, $data), $buckets);
 
         $topology = $this->getTopology($model->table);
         if ($topology) {

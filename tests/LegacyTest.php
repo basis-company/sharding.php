@@ -73,7 +73,9 @@ class LegacyTest extends TestCase
         $this->assertCount(2, $database->find('stage.stage_correction'));
 
         // later class registration
-        $model = $database->schema->register(StageCorrection::class, 'stage');
+        $database->schema->register(StageCorrection::class, 'stage');
+        // reset instance cache
+        $database->factory->reset();
         $this->assertSame($database->schema->getModel('stage_stage_correction')->class, StageCorrection::class);
         $database->schema->getTableClass(str_replace('.', '_', 'stage.stage_correction'));
 

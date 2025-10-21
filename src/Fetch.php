@@ -72,7 +72,7 @@ class Fetch
                     // query result is array of tuples
                     $result = $result[0];
                 }
-                $result = array_map(fn($row) => $this->database->factory->getInstance($this->model->class, $row), $result);
+                $result = array_map(fn($row) => $this->database->factory->getInstance($this->model, $row), $result);
             }
 
             if ($this->first) {
@@ -129,7 +129,7 @@ class Fetch
                     $table = $this->model->getTable($bucket, $storage);
                 }
                 foreach ($callback($driver, $table) as $row) {
-                    $rows[] = $this->database->factory->getInstance($this->model->class, $row);
+                    $rows[] = $this->database->factory->getInstance($this->model, $row);
                     if ($this->first) {
                         return array_pop($rows);
                     }

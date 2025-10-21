@@ -2,6 +2,7 @@
 
 namespace Basis\Sharding;
 
+use Basis\Sharding\Schema\Model;
 use Closure;
 use ReflectionClass;
 
@@ -47,44 +48,49 @@ class Factory
         return $this->defaults[$class];
     }
 
-    public function getInstance(?string $class, array|object $data): object
+    public function getInstance(Model $model, array|object $data): object
     {
         if (is_object($data)) {
             $data = get_object_vars($data);
         }
 
-        if (array_key_exists('id', $data) && array_key_exists($class, $this->identityMap)) {
-            if (array_key_exists($data['id'], $this->identityMap[$class])) {
+        if (array_key_exists('id', $data) && array_key_exists($model->table, $this->identityMap)) {
+            if (array_key_exists($data['id'], $this->identityMap[$model->table])) {
                 foreach ($data as $k => $v) {
-                    $this->identityMap[$class][$data['id']]->$k = $v;
+                    $this->identityMap[$model->table][$data['id']]->$k = $v;
                 }
 
-                return $this->identityMap[$class][$data['id']];
+                return $this->identityMap[$model->table][$data['id']];
             }
         }
 
         $instance = (object) $data;
 
-        if ($class && class_exists($class)) {
-            if (method_exists($class, '__construct')) {
-                $instance = new $class(...array_values($data));
+        if ($model->class && class_exists($model->class)) {
+            if (method_exists($model->class, '__construct')) {
+                $instance = new ($model->class)(...array_values($data));
             } else {
-                $instance = new $class();
+                $instance = new ($model->class)();
                 foreach ($data as $key => $value) {
                     $instance->$key = $value;
                 }
             }
         }
 
-        if (array_key_exists('id', $data) && !array_key_exists($class, $this->excludedFromIdentityMap)) {
-            if (!array_key_exists($class, $this->identityMap)) {
-                $this->identityMap[$class] = [];
+        if (array_key_exists('id', $data) && !array_key_exists($model->class, $this->excludedFromIdentityMap)) {
+            if (!array_key_exists($model->class, $this->identityMap)) {
+                $this->identityMap[$model->class] = [];
             }
-            $this->identityMap[$class][$instance->id] = $instance;
+            $this->identityMap[$model->table][$instance->id] = $instance;
         }
 
         array_map(fn ($callback) => $callback($instance), $this->afterCreate);
 
         return $instance;
+    }
+
+    public function reset()
+    {
+        $this->identityMap = [];
     }
 }

@@ -215,6 +215,7 @@ class Database implements Crud
 
     public function select(string|Model $class): Select
     {
+        $class = $class instanceof Model ? $class : $this->schema->getModel($class);
         return new Select(function (Select $global) use ($class) {
             $result = [];
             foreach ($this->getBuckets($class) as $bucket) {
