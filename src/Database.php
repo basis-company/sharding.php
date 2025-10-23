@@ -48,7 +48,7 @@ class Database implements Crud
     {
         $model = $this->schema->getModel($class);
         if ((!class_exists($class, false) || property_exists($class, 'id')) && (!array_key_exists('id', $data) || !$data['id'])) {
-            $data = array_merge(['id' => $this->generateId($model)], $data);
+            $data['id'] = $this->generateId($model);
         }
 
         foreach ($this->factory->getDefaults($class) as $k => $v) {
@@ -127,7 +127,7 @@ class Database implements Crud
         $data = array_merge($query, $data);
 
         if ((!class_exists($class, false) || property_exists($class, 'id')) && (!array_key_exists('id', $data) || !$data['id'])) {
-            $data = array_merge($data, ['id' => $this->generateId($model)]);
+            $data['id'] = $this->generateId($model);
         }
 
         foreach ($this->factory->getDefaults($class) as $k => $v) {

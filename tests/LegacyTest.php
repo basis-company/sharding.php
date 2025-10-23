@@ -84,6 +84,9 @@ class LegacyTest extends TestCase
         // domain test
         $this->assertCount(2, $database->getDomain('stage')->find('stage_correction'));
         $this->assertInstanceOf(StageCorrection::class, $database->getDomain('stage')->findOne('stage_correction', []));
+
+        $correction3 = $database->create(StageCorrection::class, ['stage' => 33, 'id' => 0]);
+        $this->assertSame($correction3->id, 3);
     }
 
     public function testRuntimeFreeDataSelect()
