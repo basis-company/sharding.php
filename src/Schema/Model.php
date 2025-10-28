@@ -126,6 +126,9 @@ class Model
         return $this->properties;
     }
 
+    /**
+     * @return Reference[]
+     */
     public function getReferences(): array
     {
         return $this->references;
