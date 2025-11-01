@@ -4,6 +4,7 @@ namespace Basis\Sharding;
 
 use Basis\Sharding\Schema\Model;
 use Closure;
+use Exception;
 use ReflectionClass;
 
 class Factory
@@ -12,6 +13,7 @@ class Factory
     private array $defaults = [];
     private array $excludedFromIdentityMap = [];
     private array $identityMap = [];
+    private bool $propertySorter = true;
 
     public function afterCreate(Closure $hook)
     {
@@ -68,7 +70,15 @@ class Factory
 
         if ($model->class && class_exists($model->class)) {
             if (method_exists($model->class, '__construct')) {
-                $instance = new ($model->class)(...array_values($data));
+                if ($this->propertySorter) {
+                    $arguments = array_map(
+                        fn($property) => $data[$property->name],
+                        $model->getProperties(),
+                    );
+                } else {
+                    $arguments = array_values($data);
+                }
+                $instance = new ($model->class)(...$arguments);
             } else {
                 $instance = new ($model->class)();
                 foreach ($data as $key => $value) {
@@ -92,5 +102,12 @@ class Factory
     public function reset()
     {
         $this->identityMap = [];
+    }
+
+    public function setPropertySorter(bool $propertySorter): self
+    {
+        $this->propertySorter = $propertySorter;
+
+        return $this;
     }
 }

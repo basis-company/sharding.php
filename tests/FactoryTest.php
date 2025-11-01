@@ -5,9 +5,11 @@ namespace Basis\Sharding\Test;
 use Basis\Sharding\Database;
 use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Entity\Tier;
 use Basis\Sharding\Test\Entity\Activity;
 use Basis\Sharding\Test\Entity\Post;
 use PHPUnit\Framework\TestCase;
+use TypeError;
 
 class FactoryTest extends TestCase
 {
@@ -40,5 +42,19 @@ class FactoryTest extends TestCase
         // without identity map properties should be also updated
         $database->update($activity, ['type' => 2]);
         $this->assertSame($activity->type, 2);
+
+        $model = $database->schema->getModel(Tier::class);
+
+        $database->factory->getInstance($model, [
+            'name' => 'zz',
+            'id' => 5,
+        ]);
+
+        $this->expectException(TypeError::class);
+
+        $database->factory->setPropertySorter(false)->getInstance($model, [
+            'name' => 'zz',
+            'id' => 6,
+        ]);
     }
 }
