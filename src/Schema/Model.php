@@ -110,6 +110,19 @@ class Model
         return $this->cache;
     }
 
+    public function getDefaults(): array
+    {
+        $defaults = [];
+
+        foreach ($this->getProperties() as $property) {
+            if ($property->defaultAvailable) {
+                $defaults[$property->name] = $property->default;
+            }
+        }
+
+        return $defaults;
+    }
+
     /**
      * @return Index[]
      */
@@ -186,7 +199,12 @@ class Model
             foreach ($parameter->getAttributes(Reference::class) as $reference) {
                 $this->addReference($reference->newInstance()->setSource($class, $parameter->getName()));
             }
-            $this->addProperty(new Property($parameter->getName(), $parameter->getType()->getName()));
+            $this->addProperty(new Property(
+                name: $parameter->getName(),
+                type: $parameter->getType()->getName(),
+                defaultAvailable: $parameter->isDefaultValueAvailable(),
+                default: $parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : null,
+            ));
         }
 
         if (!count($this->getProperties())) {

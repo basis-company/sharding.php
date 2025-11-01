@@ -29,27 +29,6 @@ class Factory
         }
     }
 
-    public function getDefaults(string $class): array
-    {
-        if (!array_key_exists($class, $this->defaults)) {
-            $this->defaults[$class] = [];
-            if (!class_exists($class)) {
-                return [];
-            }
-            $reflection = new ReflectionClass($class);
-            if (!$reflection->getConstructor()) {
-                return [];
-            }
-            foreach ($reflection->getConstructor()->getParameters() as $parameter) {
-                if ($parameter->isDefaultValueAvailable()) {
-                    $this->defaults[$class][$parameter->getName()] = $parameter->getDefaultValue();
-                }
-            }
-        }
-
-        return $this->defaults[$class];
-    }
-
     public function getInstance(Model $model, array|object $data): object
     {
         if (is_object($data)) {
@@ -70,11 +49,17 @@ class Factory
 
         if ($model->class && class_exists($model->class)) {
             if (method_exists($model->class, '__construct')) {
-                if ($this->propertySorter) {
-                    $arguments = array_map(
-                        fn($property) => $data[$property->name],
-                        $model->getProperties(),
-                    );
+                if ($this->propertySorter && !array_is_list($data)) {
+                    $arguments = [];
+                    foreach ($model->getProperties() as $property) {
+                        if (array_key_exists($property->name, $data)) {
+                            $arguments[] = $data[$property->name];
+                        } elseif ($property->defaultAvailable) {
+                            $arguments[] = $property->default;
+                        } else {
+                            break;
+                        }
+                    }
                 } else {
                     $arguments = array_values($data);
                 }

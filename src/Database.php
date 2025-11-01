@@ -51,7 +51,7 @@ class Database implements Crud
             $data['id'] = $this->generateId($model);
         }
 
-        foreach ($this->factory->getDefaults($class) as $k => $v) {
+        foreach ($model->getDefaults() as $k => $v) {
             if (!array_key_exists($k, $data)) {
                 $data[$k] = $v;
             }
@@ -130,7 +130,7 @@ class Database implements Crud
             $data['id'] = $this->generateId($model);
         }
 
-        foreach ($this->factory->getDefaults($class) as $k => $v) {
+        foreach ($model->getDefaults() as $k => $v) {
             if (!array_key_exists($k, $data)) {
                 $data[$k] = $v;
             }
