@@ -145,7 +145,11 @@ class Locator implements LocatorInterface, ShardingInterface
             throw new Exception('Multiple buckets for ' . $model->segment);
         }
 
-        array_walk($buckets, fn($bucket) => $this->assignStorage($bucket, $model->class, $topology));
+        foreach ($buckets as $bucket) {
+            if (!$bucket->storage) {
+                $this->assignStorage($bucket, $model->class, $topology);
+            }
+        }
 
         if ($topology && $topology->replicas > 1) {
             shuffle($buckets);

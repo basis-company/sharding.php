@@ -40,6 +40,8 @@ class LegacyTest extends TestCase
         $database->locator->assignStorage($bucket, Locator::class);
         $this->assertNotSame($bucket->storage, $additionalStorage->id);
         $database->update($bucket, ['storage' => $additionalStorage->id]);
+        assert($additionalStorage instanceof Storage);
+        $additionalStorage->getDriver()->syncSchema($database, $bucket);
 
         $correction = $database->create(StageCorrection::class, [
             'stage' => 123,
