@@ -10,6 +10,7 @@ use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Subscription;
 use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Driver;
+use Basis\Sharding\Interface\Queryable;
 use Basis\Sharding\Schema\Model;
 use Basis\Sharding\Select;
 use Doctrine\DBAL\Connection;
@@ -20,7 +21,7 @@ use Doctrine\DBAL\Tools\DsnParser;
 use Exception;
 use ReflectionProperty;
 
-class Doctrine implements Driver
+class Doctrine implements Driver, Queryable
 {
     public static int $x = 0;
     private ?Connection $connection = null;
@@ -255,7 +256,7 @@ class Doctrine implements Driver
         }
         return $sorted;
     }
-    public function query(string $query, array $params = []): array
+    public function query(string $query, array $params = []): array|object|null
     {
         return $this->getConnection()->executeQuery($query, $params)->fetchAllAssociative();
     }

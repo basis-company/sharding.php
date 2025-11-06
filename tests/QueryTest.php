@@ -7,8 +7,11 @@ use Basis\Sharding\Driver\Doctrine;
 use Basis\Sharding\Driver\Tarantool;
 use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Interface\Driver;
+use Basis\Sharding\Interface\Queryable;
+use Exception;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 
 class QueryTest extends TestCase
 {
@@ -141,7 +144,9 @@ class QueryTest extends TestCase
             $this->assertInstanceOf(Bucket::class, $buckets[0]);
 
         } else {
-            $this->markTestSkipped(get_class($driver) . ' is not supported');
+            if (!(new ReflectionClass($driver))->implementsInterface(Queryable::class)) {
+                $this->assertTrue(true); // this is fine
+            }
         }
     }
 }

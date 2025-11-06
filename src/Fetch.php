@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Basis\Sharding;
 
 use Basis\Sharding\Entity\Bucket;
+use Basis\Sharding\Interface\Queryable;
 use Basis\Sharding\Schema\Model;
 use Exception;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Cache\CacheItem;
 
-class Fetch
+class Fetch implements Queryable
 {
     public mixed $buckets = [];
     private ?CacheItem $cache = null;

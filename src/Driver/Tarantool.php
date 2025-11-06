@@ -9,6 +9,7 @@ use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Entity\Subscription;
 use Basis\Sharding\Interface\Bootstrap;
 use Basis\Sharding\Interface\Driver;
+use Basis\Sharding\Interface\Queryable;
 use Basis\Sharding\Schema\Model;
 use Basis\Sharding\Select;
 use Exception;
@@ -18,7 +19,7 @@ use Tarantool\Client\Schema\Operations;
 use Tarantool\Mapper\Mapper;
 
 
-class Tarantool implements Driver
+class Tarantool implements Driver, Queryable
 {
     public readonly Mapper $mapper;
     private $context = [];
@@ -228,7 +229,7 @@ class Tarantool implements Driver
         return (object) $this->mapper->getSpace($table)->getInstance($result);
     }
 
-    public function query(string $query, array $params = []): array
+    public function query(string $query, array $params = []): array|object|null
     {
         return $this->mapper->evaluate($query, $params);
     }
