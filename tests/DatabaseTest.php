@@ -44,8 +44,7 @@ class DatabaseTest extends TestCase
         $this->assertCount(2, $model->getIndexes());
 
         // validate property registration
-        $fields = array_map(fn($property) => $property->name, $model->getProperties());
-        $this->assertSame(['id', 'nick', 'name'], $fields);
+        $this->assertSame(['id', 'nick', 'name'], $model->getFields());
         $types = array_map(fn($property) => $property->type, $model->getProperties());
         $this->assertSame(['int', 'string', 'string'], $types);
 

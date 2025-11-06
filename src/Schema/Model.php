@@ -33,6 +33,7 @@ class Model
      */
     private array $references = [];
 
+    private array $fields = [];
     private bool $isSharded = false;
     private string $tier = '';
     private ?Caching $cache = null;
@@ -71,6 +72,8 @@ class Model
         } else {
             $this->properties[] = new Property($name, $type);
         }
+
+        $this->fields = array_map(fn ($property) => $property->name, $this->properties);
 
         return $this;
     }
@@ -121,6 +124,11 @@ class Model
         }
 
         return $defaults;
+    }
+
+    public function getFields(): array
+    {
+        return $this->fields;
     }
 
     /**
