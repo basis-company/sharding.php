@@ -3,12 +3,12 @@
 namespace Basis\Sharding\Test;
 
 use Basis\Sharding\Driver\Tarantool;
-use Basis\Sharding\Entity\Bucket;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Schema;
 use Basis\Sharding\Database;
 use Basis\Sharding\Entity\Sequence;
 use Basis\Sharding\Interface\Driver;
+use Basis\Sharding\Job\Convert;
 use Basis\Sharding\Schema\Model;
 use Basis\Sharding\Schema\Property;
 use Basis\Sharding\Schema\UniqueIndex;
@@ -67,14 +67,32 @@ class DatabaseTest extends TestCase
                 ->addIndex(['id'], true)
         );
 
+        $database->getCoreDriver()->syncSchema($database, $database->getBuckets('basis_channel')[0]);
+        $this->assertTrue($driver->hasTable('basis_channel'));
+
         $this->assertCount(0, $database->find('basis_channel'));
         $this->assertNotCount(0, $database->find('basis_user'));
 
-        $user = $database->create('basis_channel', []);
+        // add property to empty table
+        $database->schema->getModel('basis_channel')->addProperty('slug', 'string');
+        $database->getCoreDriver()->syncSchema($database, $database->getBuckets('basis_channel')[0]);
+        $channel = $database->create('basis_channel', ['slug' => 'tester']);
+        $this->assertSame(array_keys(get_object_vars($channel)), ['id', 'slug']);
+        $this->assertSame($channel, $database->findOne('basis_channel', []));
+
         $this->assertNotSame(
             $database->findOne('basis_user', []),
             $database->findOne('basis_channel', [])
         );
+
+        // add property to non-empty table
+        $database->schema->getModel('basis_channel')->addProperty('title', 'string');
+        $database->dispatch(new Convert('basis_channel'));
+        $database->getCoreDriver()->syncSchema($database, $database->getBuckets('basis_channel')[0]);
+
+        $driver->syncSchema($database, $database->getBuckets('basis_channel')[0]);
+        $channel = $database->create('basis_channel', []);
+        $this->assertSame(array_keys(get_object_vars($channel)), ['id', 'slug', 'title']);
     }
 
     #[DataProviderExternal(TestProvider::class, 'drivers')]
