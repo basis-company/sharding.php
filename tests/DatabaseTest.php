@@ -74,10 +74,10 @@ class DatabaseTest extends TestCase
         $this->assertNotCount(0, $database->find('basis_user'));
 
         // add property to empty table
-        $database->schema->getModel('basis_channel')->addProperty('slug', 'string');
+        $database->schema->getModel('basis_channel')->addProperty('title', 'string')->addIndex(['title'], false);
         $database->getCoreDriver()->syncSchema($database, $database->getBuckets('basis_channel')[0]);
-        $channel = $database->create('basis_channel', ['slug' => 'tester']);
-        $this->assertSame(array_keys(get_object_vars($channel)), ['id', 'slug']);
+        $channel = $database->create('basis_channel', ['title' => 'tester']);
+        $this->assertSame(array_keys(get_object_vars($channel)), ['id', 'title']);
         $this->assertSame($channel, $database->findOne('basis_channel', []));
 
         $this->assertNotSame(
@@ -85,14 +85,24 @@ class DatabaseTest extends TestCase
             $database->findOne('basis_channel', [])
         );
 
-        // add property to non-empty table
-        $database->schema->getModel('basis_channel')->addProperty('title', 'string');
+        // convert non-empty table
+        $database = new Database($driver);
+        $database->schema->registerModel(
+            (new Model('basis','basis_channel'))
+                ->addProperty('id')
+                ->addProperty('slug', 'string')
+                ->addProperty('title', 'string')
+                ->addIndex(['id'], true)
+                ->addIndex(['slug'])
+                ->addIndex(['title'], false)
+        );
         $database->dispatch(new Convert('basis_channel'));
-        $database->getCoreDriver()->syncSchema($database, $database->getBuckets('basis_channel')[0]);
+        $this->assertObjectHasProperty('slug', $database->findOne('basis_channel', []));
 
         $driver->syncSchema($database, $database->getBuckets('basis_channel')[0]);
-        $channel = $database->create('basis_channel', []);
-        $this->assertSame(array_keys(get_object_vars($channel)), ['id', 'slug', 'title']);
+        $channel = $database->create('basis_channel', ['slug' => 'tester2']);
+        $this->assertSame(1, $database->findOne('basis_channel', ['slug' => ''])->id);
+        $this->assertSame(2, $database->findOne('basis_channel', ['slug' => 'tester2'])->id);
     }
 
     #[DataProviderExternal(TestProvider::class, 'drivers')]

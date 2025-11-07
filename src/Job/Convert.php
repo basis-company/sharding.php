@@ -7,6 +7,8 @@ use Basis\Sharding\Driver\Doctrine;
 use Basis\Sharding\Driver\Runtime;
 use Basis\Sharding\Driver\Tarantool;
 use Basis\Sharding\Interface\Job;
+use Basis\Sharding\Schema\Index;
+use Basis\Sharding\Schema\Property;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -48,6 +50,10 @@ class Convert implements Job
                         }
                     }
                     $driver->query(<<<LUA
+                        box.space[space]:format({})
+                        box.space._vindex:pairs({box.space[space].id})
+                            :filter(function(t) return t.iid > 0 end)
+                            :each(function (t) box.space[space].index[t.name]:drop() end)
                         box.begin()
                         box.space[space]:pairs()
                             :each(function(t)
@@ -62,9 +68,35 @@ class Convert implements Job
                                 box.space[space]:replace(tuple)
                             end)
                         box.commit()
+                        box.space[space]:format(format)
+                        for i, index in pairs(indexes) do
+                            if box.space[space].index[index.name] ~= nil then
+                                box.space[space]:create_index(index.name, {
+                                    type = index.type,
+                                    unique = index.unique,
+                                    parts = index.fields
+                                })
+                            end
+                        end
                     LUA, [
                         'space' => $table,
                         'plan' => $plan,
+                        'format' => array_map(
+                            fn (Property $property) => [
+                                'name' => $property->name,
+                                'type' => $driver->getTarantoolType($property->type),
+                            ],
+                            $model->getProperties(),
+                        ),
+                        'indexes' => array_map(
+                            fn (Index $index) => [
+                                'name' => $index->name,
+                                'type' => 'tree',
+                                'unique' => $index->unique,
+                                'fields' => $index->fields
+                            ],
+                            $model->getIndexes(),
+                        )
                     ]);
                 }
             } elseif ($driver instanceof Doctrine) {
@@ -91,11 +123,21 @@ class Convert implements Job
                     ));
                 }
             } elseif ($driver instanceof Runtime) {
+                if (array_key_exists($table, $driver->data)) {
+                    foreach ($driver->data[$table] as $i => $instance) {
+                        foreach ($model->getProperties() as $property) {
+                            if (!array_key_exists($property->name, $instance)) {
+                                $instance[$property->name] = $driver->getDefaultValue($property->type);
+                            }
+                        }
+                        $driver->data[$table][$i] = $instance;
+                    }
+                }
                 continue;
             } else {
                 throw new Exception("No driver convertation");
             }
-            $driver->syncSchema($database, $bucket);
         }
+        $driver->syncSchema($database, $bucket);
     }
 }

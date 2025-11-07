@@ -279,11 +279,11 @@ class Runtime implements Driver
 
         foreach ($database->schema->getModels($bucket->name) as $model) {
             $table = $model->getTable($bucket, $storage);
+            $this->models[$table] = $model;
             if (array_key_exists($table, $this->data)) {
                 continue;
             }
             $this->data[$table] = [];
-            $this->models[$table] = $model;
             if (is_a($model->class, Bootstrap::class, true)) {
                 $bootstrappers[] = $model->class;
             }

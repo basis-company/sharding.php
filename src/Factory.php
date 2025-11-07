@@ -10,7 +10,6 @@ use ReflectionClass;
 class Factory
 {
     private array $afterCreate = [];
-    private array $defaults = [];
     private array $excludedFromIdentityMap = [];
     private array $identityMap = [];
     private bool $propertySorter = true;

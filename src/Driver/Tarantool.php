@@ -18,7 +18,6 @@ use Tarantool\Client\Schema\Criteria;
 use Tarantool\Client\Schema\Operations;
 use Tarantool\Mapper\Mapper;
 
-
 class Tarantool implements Driver, Queryable
 {
     public readonly Mapper $mapper;
