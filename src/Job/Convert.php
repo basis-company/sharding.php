@@ -9,10 +9,6 @@ use Basis\Sharding\Driver\Tarantool;
 use Basis\Sharding\Interface\Job;
 use Basis\Sharding\Schema\Index;
 use Basis\Sharding\Schema\Property;
-use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Schema\ColumnDiff;
-use Doctrine\DBAL\Schema\TableDiff;
-use Doctrine\DBAL\Types\Type;
 use Exception;
 
 class Convert implements Job
@@ -36,48 +32,65 @@ class Convert implements Job
                 if ($model->getFields() != $space->getFields()) {
                     $plan = [];
                     foreach ($model->getProperties() as $n => $property) {
+                        $default = $driver->getMapper()->converter->formatValue(
+                            type: $driver->getTarantoolType($property->type),
+                            value: $property->default ?: ''
+                        );
                         if (in_array($property->name, $space->getFields())) {
                             $plan[$n] = [
                                 'source' => array_search($property->name, $space->getFields()) + 1,
+                                'default' => $default,
                             ];
                         } else {
                             $plan[$n] = [
-                                'default' => $driver->getMapper()->converter->formatValue(
-                                    type: $driver->getTarantoolType($property->type),
-                                    value: $property->default ?: ''
-                                ),
+                                'default' => $default,
                             ];
                         }
                     }
                     $driver->query(<<<LUA
-                        box.space[space]:format({})
-                        box.space._vindex:pairs({box.space[space].id})
-                            :filter(function(t) return t.iid > 0 end)
-                            :each(function (t) box.space[space].index[t.name]:drop() end)
                         box.begin()
-                        box.space[space]:pairs()
+                        local space_old = box.space[space]
+                        local old_field_positions = {}
+                        local format_old = space_old:format()
+                        for pos, field in pairs(format_old) do
+                            old_field_positions[field.name] = pos
+                        end
+                        for i, field in pairs(format) do
+                            local old_pos = old_field_positions[field.name]
+                            if old_pos ~= nil then
+                                if format_old[old_pos]['is_nullable'] ~= nil then
+                                    format[i]['is_nullable'] = format_old[old_pos]['is_nullable']
+                                end
+                                if format_old[old_pos]['reference'] ~= nil then
+                                    format[i]['reference'] = format_old[old_pos]['reference']
+                                end
+                            end
+                        end
+
+                        local space_new = box.schema.space.create('temp_' .. space)
+                        space_new:format(format)
+                        for i, index in pairs(indexes) do
+                            space_new:create_index(index.name, {
+                                type = index.type,
+                                unique = index.unique,
+                                parts = index.fields
+                            })
+                        end
+                        space_old:pairs()
                             :each(function(t)
                                 local tuple = {}
                                 for n, cfg in pairs(plan) do
-                                    if cfg.source ~= nil then
+                                    if cfg.source ~= nil and t[cfg.source] ~= nil then
                                         tuple[n] = t[cfg.source]
                                     else
                                         tuple[n] = cfg.default
                                     end
                                 end
-                                box.space[space]:replace(tuple)
+                                space_new:insert(tuple)
                             end)
+                        space_old:drop()
+                        space_new:rename(space)
                         box.commit()
-                        box.space[space]:format(format)
-                        for i, index in pairs(indexes) do
-                            if box.space[space].index[index.name] ~= nil then
-                                box.space[space]:create_index(index.name, {
-                                    type = index.type,
-                                    unique = index.unique,
-                                    parts = index.fields
-                                })
-                            end
-                        end
                     LUA, [
                         'space' => $table,
                         'plan' => $plan,
@@ -103,24 +116,70 @@ class Convert implements Job
                 $manager = $driver->getConnection()->createSchemaManager();
                 $doctrineTable = $manager->introspectTable($table);
                 $columns = [];
-                $plan = [];
                 $fields = array_map(fn ($column) => $column->getName(), $doctrineTable->getColumns());
-                foreach ($model->getProperties() as $n => $property) {
-                    if (!in_array($property->name, $fields)) {
-                        $dbType = $driver->getDatabaseType($property->type);
-                        $columns[] = new Column($property->name, Type::getType($dbType), ['notnull' => false]);
-                        $plan[$property->name] = $driver->getDefaultValue($dbType);
+                $modelFields = array_map(fn ($property) => $property->name, $model->getProperties());
+                $fields = array_map(fn ($column) => $column->getName(), $doctrineTable->getColumns());
+                if ($fields !== $modelFields) {
+                    $connection = $driver->getConnection();
+                    $connection->beginTransaction();
+
+                    try {
+                        $tempTable = 'temp_' . $table;
+                        $createSQL = "CREATE TABLE $tempTable (\n";
+                        $columns = [];
+
+                        foreach ($model->getProperties() as $property) {
+                            $type = match ($property->type) {
+                                'int', 'integer' => 'INTEGER',
+                                'string', 'text' => 'TEXT',
+                                'float', 'double' => 'REAL',
+                                'bool', 'boolean' => 'BOOLEAN',
+                                'datetime' => 'TIMESTAMP',
+                                'date' => 'DATE',
+                                'json' => 'JSONB',
+                                default => 'TEXT'
+                            };
+                            $colDef = $property->name . " $type";
+                            $columns[] = $colDef;
+                        }
+
+                        $createSQL .= implode(",\n", $columns) . "\n)";
+                        $connection->executeStatement($createSQL);
+                        $selectFields = [];
+
+                        foreach ($model->getProperties() as $property) {
+                            $dbType = $driver->getDatabaseType($property->type);
+                            $default_value = $driver->getDefaultValue($dbType);
+                            $default_value = $dbType == 'string' ? $connection->quote('') : $default_value;
+                            if (in_array($property->name, $fields)) {
+                                $selectFields[] = $property->name;
+                            } else {
+                                $selectFields[] = $default_value;
+                            }
+                        }
+
+                        $copySQL = "INSERT INTO $tempTable 
+                            SELECT " . implode(", ", $selectFields) . " 
+                            FROM $table";
+                        $connection->executeStatement($copySQL);
+
+                        foreach ($model->getIndexes() as $index) {
+                            $indexName = $tempTable . '_' . implode('_', $index->fields);
+                            $unique = $index->unique ? 'UNIQUE ' : '';
+                            $fields = implode(', ', $index->fields);
+                            $connection->executeStatement(
+                                "CREATE $unique INDEX $indexName ON $tempTable ($fields)"
+                            );
+                        }
+
+                        //it won't work if other tables have foreign keys that reference this table
+                        $connection->executeStatement("DROP TABLE $table");
+                        $connection->executeStatement("ALTER TABLE $tempTable RENAME TO $table");
+                        $connection->commit();
+                    } catch (Exception $e) {
+                        $connection->rollBack();
+                        throw $e;
                     }
-                }
-                if (count($columns)) {
-                    $manager->alterTable(new TableDiff($doctrineTable, $columns));
-                    foreach ($plan as $field => $default) {
-                        $driver->query("update $table set $field = ?", [$default]);
-                    }
-                    $manager->alterTable(new TableDiff(
-                        oldTable: $doctrineTable,
-                        changedColumns: array_map(fn ($column) => new ColumnDiff($column, (clone $column)->setNotnull(true)), $columns),
-                    ));
                 }
             } elseif ($driver instanceof Runtime) {
                 if (array_key_exists($table, $driver->data)) {
@@ -132,6 +191,18 @@ class Convert implements Job
                         }
                         $driver->data[$table][$i] = $instance;
                     }
+                }
+                $modelFields = array_map(fn ($property) => $property->name, $model->getProperties());
+                $tableFields = count($driver->data[$table]) ? array_keys($driver->data[$table][0]) : null;
+                if ($modelFields != $tableFields) {
+                    $tempTable = [];
+                    foreach ($driver->data[$table] as $num => $instance) {
+                        foreach ($modelFields as $k => $v) {
+                            $tempTable[$num][$v] = $instance[$v];
+                        }
+                    }
+                    $driver->data[$table] = $tempTable;
+                    unset($tempTable);
                 }
                 continue;
             } else {

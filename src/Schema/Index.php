@@ -10,6 +10,6 @@ class Index
         public readonly array $fields,
         public readonly bool $unique = false,
     ) {
-        $this->name = implode("_", $fields) . ($unique ? "_unique" : "");
+        $this->name = implode("_", $fields);
     }
 }

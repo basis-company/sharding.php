@@ -17,6 +17,7 @@ use Basis\Sharding\Test\Entity\MapperLogin;
 use Basis\Sharding\Test\Entity\User;
 use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 
 class DatabaseTest extends TestCase
 {
@@ -50,6 +51,13 @@ class DatabaseTest extends TestCase
 
         $database = new Database($driver->reset());
         $database->schema->registerModel($model);
+        $driver->syncSchema($database, $database->getBuckets('basis_user')[0]);
+
+        if ($driver instanceof Tarantool) {
+            $space = $driver->getMapper()->getSpace('basis_user');
+            $property = new ReflectionProperty($space::class, 'indexes');
+            $this->assertCount(count($property->getValue($space)), $model->getIndexes());
+        }
 
         $this->assertSame($database->schema->getModel('basis_user'), $model);
 
@@ -62,7 +70,7 @@ class DatabaseTest extends TestCase
         $this->assertSame($user, $database->findOne('basis.user', []));
 
         $database->schema->registerModel(
-            (new Model('basis','basis_channel'))
+            (new Model('basis', 'basis_channel'))
                 ->addProperty('id')
                 ->addIndex(['id'], true)
         );
@@ -88,7 +96,7 @@ class DatabaseTest extends TestCase
         // convert non-empty table
         $database = new Database($driver);
         $database->schema->registerModel(
-            (new Model('basis','basis_channel'))
+            (new Model('basis', 'basis_channel'))
                 ->addProperty('id')
                 ->addProperty('slug', 'string')
                 ->addProperty('title', 'string')
@@ -103,6 +111,47 @@ class DatabaseTest extends TestCase
         $channel = $database->create('basis_channel', ['slug' => 'tester2']);
         $this->assertSame(1, $database->findOne('basis_channel', ['slug' => ''])->id);
         $this->assertSame(2, $database->findOne('basis_channel', ['slug' => 'tester2'])->id);
+
+        // convert table with wrong properties order
+        $database->schema->registerModel(
+            (new Model('basis', 'basis_entity'))
+                ->addProperty('idle', 'int')
+                ->addProperty('id', 'int')
+                ->addProperty('nick', 'string')
+                ->addIndex(['id'], true)
+                ->addIndex(['idle'], false)
+                ->addIndex(['idle', 'nick'], true)
+        );
+        $driver->syncSchema($database, $database->getBuckets('basis_entity')[0]);
+        $entity = $database->create('basis_entity', ['nick' => 'first']);
+        $entity = $database->create('basis_entity', ['nick' => 'second']);
+        $entity = $database->findOne('basis_entity', ['id' => 1]);
+
+        $database = new Database($driver);
+        $database->schema->registerModel(
+            (new Model('basis', 'basis_entity'))
+                ->addProperty('id', 'int')
+                ->addProperty('idle', 'int')
+                ->addProperty('nick', 'string')
+                ->addIndex(['id'], true)
+                ->addIndex(['idle'], false)
+                ->addIndex(['idle', 'nick'], true)
+        );
+        $database->dispatch(new Convert('basis_entity'));
+
+        if ($driver instanceof Tarantool) {
+            $space = $driver->getMapper()->getSpace('basis_user');
+            $this->assertCount(count($property->getValue($space)), $model->getIndexes());
+        }
+
+        $entityNew = $database->findOne('basis_entity', ['id' => 1]);
+        $entityKeys = array_keys(get_object_vars($entity));
+        $entityNewKeys = array_keys(get_object_vars($entityNew));
+
+        $this->assertNotSame($entityKeys, $entityNewKeys);
+        $this->assertSame($entity->idle, $entityNew->idle);
+        $this->assertSame($entity->id, $entityNew->id);
+        $this->assertSame([$entityKeys[1], $entityKeys[0], $entityKeys[2]], $entityNewKeys);
     }
 
     #[DataProviderExternal(TestProvider::class, 'drivers')]
