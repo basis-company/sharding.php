@@ -2,6 +2,7 @@
 
 namespace Basis\Sharding\Test;
 
+use Basis\Sharding\Driver\Doctrine;
 use Basis\Sharding\Driver\Tarantool;
 use Basis\Sharding\Entity\Storage;
 use Basis\Sharding\Schema;
@@ -128,19 +129,20 @@ class DatabaseTest extends TestCase
         $entity = $database->findOne('basis_entity', ['id' => 1]);
 
         $database = new Database($driver);
-        $database->schema->registerModel(
-            (new Model('basis', 'basis_entity'))
-                ->addProperty('id', 'int')
-                ->addProperty('idle', 'int')
-                ->addProperty('nick', 'string')
-                ->addIndex(['id'], true)
-                ->addIndex(['idle'], false)
-                ->addIndex(['idle', 'nick'], true)
-        );
+        $model = new Model('basis', 'basis_entity');
+        $model->addProperty('id', 'int');
+        $model->addProperty('idle', 'int');
+        $model->addProperty('nick', 'string');
+        $model->addIndex(['id'], true);
+        $model->addIndex(['idle'], false);
+        $model->addIndex(['idle', 'nick'], true);
+
+        $database->schema->registerModel($model);
         $database->dispatch(new Convert('basis_entity'));
 
         if ($driver instanceof Tarantool) {
-            $space = $driver->getMapper()->getSpace('basis_user');
+            $space = $driver->getMapper()->getSpace('basis_entity');
+            $property = new ReflectionProperty($space::class, 'indexes');
             $this->assertCount(count($property->getValue($space)), $model->getIndexes());
         }
 
@@ -152,6 +154,20 @@ class DatabaseTest extends TestCase
         $this->assertSame($entity->idle, $entityNew->idle);
         $this->assertSame($entity->id, $entityNew->id);
         $this->assertSame([$entityKeys[1], $entityKeys[0], $entityKeys[2]], $entityNewKeys);
+
+        $model->addIndex(['nick'], false);
+        $database = new Database($driver);
+        $database->schema->registerModel($model);
+        $database->dispatch(new Convert('basis_entity'));
+        if ($driver instanceof Tarantool) {
+            $space = $driver->getMapper()->getSpace('basis_entity');
+            $this->assertCount(4, $property->getValue($space));
+            $this->assertSame('nick', ($property->getValue($space))[3]['name']);
+        } elseif ($driver instanceof Doctrine) {
+            $manager = $driver->getConnection()->createSchemaManager();
+            $this->assertCount(4, $manager->listTableIndexes('basis_entity'));
+            $this->assertSame('basis_entity_nick', (array_keys($manager->listTableIndexes('basis_entity')))[3]);
+        }
     }
 
     #[DataProviderExternal(TestProvider::class, 'drivers')]
