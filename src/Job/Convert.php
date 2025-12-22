@@ -10,6 +10,7 @@ use Basis\Sharding\Interface\Job;
 use Basis\Sharding\Schema\Index;
 use Basis\Sharding\Schema\Property;
 use Exception;
+use ReflectionProperty;
 
 class Convert implements Job
 {
@@ -29,7 +30,25 @@ class Convert implements Job
             $driver = $storage->getDriver();
             if ($driver instanceof Tarantool) {
                 $space = $driver->getMapper()->getSpace($table);
-                if ($model->getFields() != $space->getFields()) {
+                $modelIndexes = array_map(
+                    fn (Index $index) => [
+                        'name' => $index->name,
+                        'type' => 'tree',
+                        'unique' => $index->unique,
+                        'fields' => $index->fields
+                    ],
+                    $model->getIndexes(),
+                );
+                $spaceIndexes = array_map(
+                    fn ($index) => [
+                        'name' => $index['name'],
+                        'type' => 'tree',
+                        'unique' => $index['opts']['unique'],
+                        'fields' => $index['fields']
+                    ],
+                    (new ReflectionProperty($space::class, 'indexes'))->getValue($space),
+                );
+                if ($model->getFields() != $space->getFields() || $modelIndexes != $spaceIndexes) {
                     $plan = [];
                     foreach ($model->getProperties() as $n => $property) {
                         $default = $driver->getMapper()->converter->formatValue(
@@ -101,25 +120,18 @@ class Convert implements Job
                             ],
                             $model->getProperties(),
                         ),
-                        'indexes' => array_map(
-                            fn (Index $index) => [
-                                'name' => $index->name,
-                                'type' => 'tree',
-                                'unique' => $index->unique,
-                                'fields' => $index->fields
-                            ],
-                            $model->getIndexes(),
-                        )
+                        'indexes' => $modelIndexes,
                     ]);
                 }
             } elseif ($driver instanceof Doctrine) {
                 $manager = $driver->getConnection()->createSchemaManager();
                 $doctrineTable = $manager->introspectTable($table);
+                $tableIndexes = array_keys($manager->listTableIndexes($table));
+                $modelIndexes = array_map(fn ($index) => $table . '_' . $index->name, $model->getIndexes());
                 $columns = [];
                 $fields = array_map(fn ($column) => $column->getName(), $doctrineTable->getColumns());
                 $modelFields = array_map(fn ($property) => $property->name, $model->getProperties());
-                $fields = array_map(fn ($column) => $column->getName(), $doctrineTable->getColumns());
-                if ($fields !== $modelFields) {
+                if ($fields !== $modelFields || $tableIndexes !== $modelIndexes) {
                     $connection = $driver->getConnection();
                     $connection->beginTransaction();
 
@@ -159,22 +171,26 @@ class Convert implements Job
                         }
 
                         $copySQL = "INSERT INTO $tempTable 
-                            SELECT " . implode(", ", $selectFields) . " 
+                            SELECT " . implode(", ", $selectFields) . "
                             FROM $table";
                         $connection->executeStatement($copySQL);
 
-                        foreach ($model->getIndexes() as $index) {
-                            $indexName = $tempTable . '_' . implode('_', $index->fields);
-                            $unique = $index->unique ? 'UNIQUE ' : '';
-                            $fields = implode(', ', $index->fields);
-                            $connection->executeStatement(
-                                "CREATE $unique INDEX $indexName ON $tempTable ($fields)"
-                            );
+                        foreach ($tableIndexes as $index) {
+                            $connection->executeStatement("DROP INDEX {$index}");
                         }
 
                         //it won't work if other tables have foreign keys that reference this table
                         $connection->executeStatement("DROP TABLE $table");
                         $connection->executeStatement("ALTER TABLE $tempTable RENAME TO $table");
+
+                        foreach ($model->getIndexes() as $index) {
+                            $indexName = $table . '_' . implode('_', $index->fields);
+                            $unique = $index->unique ? 'UNIQUE ' : '';
+                            $fields = implode(', ', $index->fields);
+                            $connection->executeStatement(
+                                "CREATE $unique INDEX $indexName ON $table ($fields)"
+                            );
+                        }
                         $connection->commit();
                     } catch (Exception $e) {
                         $connection->rollBack();
