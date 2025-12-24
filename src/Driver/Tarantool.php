@@ -324,6 +324,7 @@ class Tarantool implements Driver, Queryable
                 'if_not_exists' => true,
                 'name' => $index->name,
                 'unique' => $index->unique,
+                'type' => $index->type,
             ]);
         }
     }

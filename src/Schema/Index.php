@@ -9,6 +9,7 @@ class Index
     public function __construct(
         public readonly array $fields,
         public readonly bool $unique = false,
+        public readonly string $type = 'tree',
     ) {
         $this->name = implode("_", $fields);
     }

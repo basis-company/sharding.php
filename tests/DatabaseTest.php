@@ -168,6 +168,24 @@ class DatabaseTest extends TestCase
             $this->assertCount(4, $manager->listTableIndexes('basis_entity'));
             $this->assertSame('basis_entity_nick', (array_keys($manager->listTableIndexes('basis_entity')))[3]);
         }
+
+        $database = new Database($driver);
+        $database->schema->registerModel(
+            (new Model('basis', 'basis_entity'))
+                ->addProperty('id', 'int')
+                ->addProperty('idle', 'int')
+                ->addProperty('nick', 'string')
+                ->addIndex(['id'], true)
+        );
+
+        $database->dispatch(new Convert('basis_entity'));
+        if ($driver instanceof Tarantool) {
+            $space = $driver->getMapper()->getSpace('basis_entity');
+            $this->assertCount(1, $property->getValue($space));
+        } elseif ($driver instanceof Doctrine) {
+            $manager = $driver->getConnection()->createSchemaManager();
+            $this->assertCount(1, $manager->listTableIndexes('basis_entity'));
+        }
     }
 
     #[DataProviderExternal(TestProvider::class, 'drivers')]

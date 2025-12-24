@@ -33,7 +33,7 @@ class Convert implements Job
                 $modelIndexes = array_map(
                     fn (Index $index) => [
                         'name' => $index->name,
-                        'type' => 'tree',
+                        'type' => $index->type,
                         'unique' => $index->unique,
                         'fields' => $index->fields
                     ],
@@ -42,13 +42,13 @@ class Convert implements Job
                 $spaceIndexes = array_map(
                     fn ($index) => [
                         'name' => $index['name'],
-                        'type' => 'tree',
+                        'type' => $index['type'],
                         'unique' => $index['opts']['unique'],
                         'fields' => $index['fields']
                     ],
                     (new ReflectionProperty($space::class, 'indexes'))->getValue($space),
                 );
-                if ($model->getFields() != $space->getFields() || $modelIndexes != $spaceIndexes) {
+                if ($model->getFields() != $space->getFields() || $modelIndexes[0] != $spaceIndexes[0]) {
                     $plan = [];
                     foreach ($model->getProperties() as $n => $property) {
                         $default = $driver->getMapper()->converter->formatValue(
@@ -122,6 +122,30 @@ class Convert implements Job
                         ),
                         'indexes' => $modelIndexes,
                     ]);
+                } elseif ($modelIndexes != $spaceIndexes) {
+                    $indexesToRemove = array_filter($spaceIndexes, fn($index) => !in_array($index, $modelIndexes));
+                    $indexesToRemove = [];
+                    foreach ($spaceIndexes as $k => $v) {
+                        if (!in_array($v, $modelIndexes)) {
+                            $indexesToRemove[$v["name"]] = true;
+                        }
+                    }
+                    if (count($indexesToRemove)) {
+                        $driver->query(<<<LUA
+                        box.begin()
+                        local space = box.space[space_name]
+
+                        for _, idx in pairs(space.index) do
+                            if indexes[idx.name] then
+                                idx:drop()
+                            end
+                        end
+                        box.commit()
+                        LUA, [
+                            'space_name' => $table,
+                            'indexes' => $indexesToRemove,
+                        ]);
+                    }
                 }
             } elseif ($driver instanceof Doctrine) {
                 $manager = $driver->getConnection()->createSchemaManager();
@@ -131,71 +155,71 @@ class Convert implements Job
                 $columns = [];
                 $fields = array_map(fn ($column) => $column->getName(), $doctrineTable->getColumns());
                 $modelFields = array_map(fn ($property) => $property->name, $model->getProperties());
-                if ($fields !== $modelFields || $tableIndexes !== $modelIndexes) {
-                    $connection = $driver->getConnection();
-                    $connection->beginTransaction();
+                $connection = $driver->getConnection();
+                $connection->beginTransaction();
+                try {
+                    if ($fields !== $modelFields || $tableIndexes !== $modelIndexes) {
+                        if ($fields !== $modelFields) {
+                            $tempTable = 'temp_' . $table;
+                            $createSQL = "CREATE TABLE $tempTable (\n";
+                            $columns = [];
 
-                    try {
-                        $tempTable = 'temp_' . $table;
-                        $createSQL = "CREATE TABLE $tempTable (\n";
-                        $columns = [];
+                            foreach ($model->getProperties() as $property) {
+                                $type = match ($property->type) {
+                                    'int', 'integer' => 'INTEGER',
+                                    'string', 'text' => 'TEXT',
+                                    'float', 'double' => 'REAL',
+                                    'bool', 'boolean' => 'BOOLEAN',
+                                    'datetime' => 'TIMESTAMP',
+                                    'date' => 'DATE',
+                                    'json' => 'JSONB',
+                                    default => 'TEXT'
+                                };
+                                $colDef = $property->name . " $type";
+                                $columns[] = $colDef;
+                            }
 
-                        foreach ($model->getProperties() as $property) {
-                            $type = match ($property->type) {
-                                'int', 'integer' => 'INTEGER',
-                                'string', 'text' => 'TEXT',
-                                'float', 'double' => 'REAL',
-                                'bool', 'boolean' => 'BOOLEAN',
-                                'datetime' => 'TIMESTAMP',
-                                'date' => 'DATE',
-                                'json' => 'JSONB',
-                                default => 'TEXT'
-                            };
-                            $colDef = $property->name . " $type";
-                            $columns[] = $colDef;
-                        }
+                            $createSQL .= implode(",\n", $columns) . "\n)";
+                            $connection->executeStatement($createSQL);
+                            $selectFields = [];
 
-                        $createSQL .= implode(",\n", $columns) . "\n)";
-                        $connection->executeStatement($createSQL);
-                        $selectFields = [];
+                            foreach ($model->getProperties() as $property) {
+                                $dbType = $driver->getDatabaseType($property->type);
+                                $default_value = $driver->getDefaultValue($dbType);
+                                $default_value = $dbType == 'string' ? $connection->quote('') : $default_value;
+                                if (in_array($property->name, $fields)) {
+                                    $selectFields[] = $property->name;
+                                } else {
+                                    $selectFields[] = $default_value;
+                                }
+                            }
 
-                        foreach ($model->getProperties() as $property) {
-                            $dbType = $driver->getDatabaseType($property->type);
-                            $default_value = $driver->getDefaultValue($dbType);
-                            $default_value = $dbType == 'string' ? $connection->quote('') : $default_value;
-                            if (in_array($property->name, $fields)) {
-                                $selectFields[] = $property->name;
-                            } else {
-                                $selectFields[] = $default_value;
+                            $copySQL = "INSERT INTO $tempTable
+                                SELECT " . implode(", ", $selectFields) . "
+                                FROM $table";
+                            $connection->executeStatement($copySQL);
+
+                            //it won't work if other tables have foreign keys that reference this table
+                            $connection->executeStatement("DROP TABLE $table");
+                            $connection->executeStatement("ALTER TABLE $tempTable RENAME TO $table");
+                        } else {
+                            foreach ($tableIndexes as $index) {
+                                $connection->executeStatement("DROP INDEX {$index}");
                             }
                         }
-
-                        $copySQL = "INSERT INTO $tempTable 
-                            SELECT " . implode(", ", $selectFields) . "
-                            FROM $table";
-                        $connection->executeStatement($copySQL);
-
-                        foreach ($tableIndexes as $index) {
-                            $connection->executeStatement("DROP INDEX {$index}");
-                        }
-
-                        //it won't work if other tables have foreign keys that reference this table
-                        $connection->executeStatement("DROP TABLE $table");
-                        $connection->executeStatement("ALTER TABLE $tempTable RENAME TO $table");
-
                         foreach ($model->getIndexes() as $index) {
                             $indexName = $table . '_' . implode('_', $index->fields);
-                            $unique = $index->unique ? 'UNIQUE ' : '';
+                            $unique = $index->unique ? 'UNIQUE' : '';
                             $fields = implode(', ', $index->fields);
                             $connection->executeStatement(
                                 "CREATE $unique INDEX $indexName ON $table ($fields)"
                             );
                         }
-                        $connection->commit();
-                    } catch (Exception $e) {
-                        $connection->rollBack();
-                        throw $e;
                     }
+                    $connection->commit();
+                } catch (Exception $e) {
+                    $connection->rollBack();
+                    throw $e;
                 }
             } elseif ($driver instanceof Runtime) {
                 if (array_key_exists($table, $driver->data)) {
